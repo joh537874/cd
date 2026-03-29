@@ -1,0 +1,1463 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>화폐 진화 단일 앱</title>
+  <style>
+    :root {
+      --bg: #050505;
+      --text: rgba(242, 242, 242, 0.94);
+      --muted: rgba(176, 176, 176, 0.56);
+      --line: rgba(255, 255, 255, 0.08);
+      --gold: rgba(232, 232, 232, 0.92);
+      --cyan: rgba(196, 196, 196, 0.94);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    }
+
+    body {
+      background:
+        radial-gradient(circle at 18% 20%, rgba(255, 255, 255, 0.03), transparent 24%),
+        radial-gradient(circle at 84% 18%, rgba(190, 190, 190, 0.05), transparent 28%),
+        radial-gradient(circle at 74% 82%, rgba(120, 120, 120, 0.05), transparent 30%),
+        linear-gradient(180deg, rgba(255,255,255,0.012), rgba(0,0,0,0.14)),
+        #050505;
+    }
+
+    #video {
+      display: none;
+    }
+
+    #webcam-layer,
+    #scene-layer {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    #webcam-layer {
+      z-index: 1;
+      opacity: 0.2;
+      filter: saturate(0.4) contrast(0.9) blur(1px);
+    }
+
+    #scene-layer {
+      z-index: 2;
+    }
+
+    #viewport {
+      position: fixed;
+      inset: 0;
+      z-index: 3;
+      overflow-y: auto;
+      scroll-snap-type: y mandatory;
+      scroll-behavior: smooth;
+    }
+
+    .stage {
+      position: relative;
+      min-height: 100vh;
+      scroll-snap-align: start;
+    }
+
+    .stage::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(0,0,0,0.1), rgba(0,0,0,0.16));
+      pointer-events: none;
+    }
+
+    #hud {
+      position: fixed;
+      inset: 0;
+      z-index: 5;
+      pointer-events: none;
+    }
+
+    #panel {
+      position: fixed;
+      left: 50%;
+      top: 18px;
+      transform: translateX(-50%);
+      text-shadow: 0 0 18px rgba(0, 0, 0, 0.52);
+      pointer-events: none;
+    }
+
+    #panel-value {
+      display: block;
+      color: var(--text);
+      font-size: 48pt;
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: -0.04em;
+      opacity: 0;
+      transform: translateX(-50%);
+    }
+
+    #dock {
+      position: fixed;
+      right: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 6;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 12px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(10, 10, 12, 0.58);
+      backdrop-filter: blur(14px);
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 0;
+      background: rgba(255,255,255,0.24);
+      cursor: pointer;
+      transition: transform 160ms ease, background-color 160ms ease;
+    }
+
+    .dot.active {
+      background: var(--gold);
+      transform: scale(1.25);
+    }
+
+    #stage-title {
+      position: fixed;
+      left: 18px;
+      top: 18px;
+      z-index: 6;
+      color: rgba(242, 242, 242, 0.82);
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      pointer-events: none;
+      text-shadow: 0 0 12px rgba(0, 0, 0, 0.45);
+    }
+
+    @media (max-width: 720px) {
+      #stage-title {
+        left: 14px;
+        top: 14px;
+        font-size: 12px;
+      }
+
+      #panel {
+        top: 14px;
+      }
+
+      #dock {
+        right: 12px;
+      }
+
+    }
+  </style>
+</head>
+<body>
+  <video id="video" playsinline autoplay muted></video>
+  <canvas id="webcam-layer"></canvas>
+  <canvas id="scene-layer"></canvas>
+
+  <div id="viewport">
+    <section class="stage" data-index="0"></section>
+    <section class="stage" data-index="1"></section>
+    <section class="stage" data-index="2"></section>
+    <section class="stage" data-index="3"></section>
+  </div>
+
+  <div id="hud">
+    <div id="panel">
+      <span id="panel-value">1</span>
+    </div>
+  </div>
+
+  <div id="dock"></div>
+  <div id="stage-title">Shell Currency</div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+
+  <script>
+    const video = document.getElementById("video");
+    const webcamCanvas = document.getElementById("webcam-layer");
+    const sceneCanvas = document.getElementById("scene-layer");
+    const webcamCtx = webcamCanvas.getContext("2d");
+    const sceneCtx = sceneCanvas.getContext("2d");
+    const viewport = document.getElementById("viewport");
+    const stages = [...document.querySelectorAll(".stage")];
+    const dock = document.getElementById("dock");
+    const stageTitleEl = document.getElementById("stage-title");
+    const panelValueEl = document.getElementById("panel-value");
+    const { Engine, World, Bodies, Body } = Matter;
+
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    let activeStage = 0;
+    let videoReady = false;
+    let handsBusy = false;
+    let faceBusy = false;
+    let lastVisionTs = 0;
+    const counterFx = { pulse: 1, visible: false };
+    const stageTitles = [
+      "Shell Currency",
+      "Standardized Money",
+      "Digital Transfer",
+      "Virtual Asset"
+    ];
+
+    function updateHud(animate = true) {
+      if (activeStage === 0) panelValueEl.textContent = stage1.count.toLocaleString("ko-KR");
+      if (activeStage === 1) panelValueEl.textContent = stage2.count.toLocaleString("ko-KR");
+      if (activeStage === 2) panelValueEl.textContent = stage3.total.toLocaleString("ko-KR");
+      if (activeStage === 3) panelValueEl.textContent = stage4.activity.toLocaleString("ko-KR");
+      if (animate) {
+        counterFx.pulse = 1;
+        counterFx.visible = true;
+      }
+    }
+
+    function animateHudCounter() {
+      if (!counterFx.visible) {
+        panelValueEl.style.opacity = "0";
+        return;
+      }
+      const scale = 0.96 + counterFx.pulse * 0.04;
+      panelValueEl.style.opacity = String(Math.max(0, counterFx.pulse));
+      panelValueEl.style.transform = `translateX(-50%) scale(${scale})`;
+      counterFx.pulse *= 0.93;
+      if (counterFx.pulse < 0.04) {
+        counterFx.visible = false;
+        panelValueEl.style.opacity = "0";
+      }
+    }
+
+    stages.forEach((stage, index) => {
+      const dot = document.createElement("button");
+      dot.className = "dot";
+      dot.type = "button";
+      dot.addEventListener("click", () => {
+        stages[index].scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+      dock.appendChild(dot);
+      stage._dot = dot;
+    });
+
+    function activateStage(index) {
+      activeStage = index;
+      stages.forEach((stage, i) => stage._dot.classList.toggle("active", i === index));
+      stageTitleEl.textContent = stageTitles[index];
+      updateHud(false);
+      counterFx.visible = false;
+      panelValueEl.style.opacity = "0";
+      stage1.hand.visible = false;
+      stage2.pinch.visible = false;
+      stage3.fingertips.forEach((s) => s.visible = false);
+      stage4.blink.visible = false;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      let best = null;
+      for (const entry of entries) {
+        if (!best || entry.intersectionRatio > best.intersectionRatio) best = entry;
+      }
+      if (!best || best.intersectionRatio < 0.55) return;
+      activateStage(Number(best.target.dataset.index));
+    }, { root: viewport, threshold: [0.25, 0.55, 0.75] });
+    stages.forEach((stage) => observer.observe(stage));
+
+    function resize() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      webcamCanvas.width = sceneCanvas.width = width;
+      webcamCanvas.height = sceneCanvas.height = height;
+      stage1.resize();
+      stage2.resize();
+      stage3.resize();
+      stage4.resize();
+    }
+
+    function clamp(v, min, max) {
+      return Math.max(min, Math.min(max, v));
+    }
+
+    function pointInRect(point, rect) {
+      return point.x >= rect.x && point.x <= rect.x + rect.w && point.y >= rect.y && point.y <= rect.y + rect.h;
+    }
+
+    function drawWebcam() {
+      webcamCtx.clearRect(0, 0, width, height);
+      if (!videoReady || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
+      webcamCtx.save();
+      webcamCtx.scale(-1, 1);
+      webcamCtx.drawImage(video, -width, 0, width, height);
+      webcamCtx.restore();
+    }
+
+    function getScreenPoint(lm, index) {
+      return { x: (1 - lm[index].x) * width, y: lm[index].y * height };
+    }
+
+    function createMoneySvg(label, base, accent, detail) {
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 200">
+          <defs><linearGradient id="bill" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="${base}"/><stop offset="100%" stop-color="${accent}"/>
+          </linearGradient></defs>
+          <rect x="10" y="10" width="340" height="180" rx="18" fill="url(#bill)" stroke="${detail}" stroke-width="8"/>
+          <rect x="34" y="30" width="292" height="140" rx="12" fill="none" stroke="${detail}" stroke-width="4" opacity="0.75"/>
+          <circle cx="92" cy="100" r="32" fill="none" stroke="${detail}" stroke-width="6" opacity="0.75"/>
+          <circle cx="268" cy="100" r="32" fill="none" stroke="${detail}" stroke-width="6" opacity="0.75"/>
+          <text x="180" y="115" text-anchor="middle" font-family="Arial, sans-serif" font-size="60" fill="${detail}" opacity="0.92">${label}</text>
+        </svg>
+      `.trim();
+      return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+    }
+
+    function createCoinSvg(label, outer, inner, detail) {
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 220">
+          <circle cx="110" cy="110" r="98" fill="${outer}" stroke="${detail}" stroke-width="10"/>
+          <circle cx="110" cy="110" r="72" fill="${inner}" stroke="${detail}" stroke-width="5" opacity="0.92"/>
+          <text x="110" y="124" text-anchor="middle" font-family="Arial, sans-serif" font-size="54" fill="${detail}">${label}</text>
+        </svg>
+      `.trim();
+      return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+    }
+
+    function loadImage(src) {
+      const img = new Image();
+      img.src = src;
+      return img;
+    }
+
+    const sharedShellSprites = ["shell 1.png", "shell 2.png", "shell 3.png"].map(loadImage);
+    const sharedMoneyAssets = [
+      { img: loadImage("./지폐 1.webp"), type: "note", w: 252, h: 138, value: "1000원" },
+      { img: loadImage("./지폐 2.jpeg"), type: "note", w: 252, h: 138, value: "10000원" },
+      { img: loadImage("./지폐 3.jpg"), type: "note", w: 252, h: 138, value: "50000원" },
+      { img: loadImage(createCoinSvg("1", "#c6b37e", "#efe0b4", "#5b4724")), type: "coin", w: 144, h: 144, value: "1원" },
+      { img: loadImage(createCoinSvg("5", "#b4bac2", "#e5e9ef", "#4a525c")), type: "coin", w: 144, h: 144, value: "5원" }
+    ];
+
+    const stage1 = {
+      engine: Engine.create({ gravity: { x: 0, y: 0 }, positionIterations: 12, velocityIterations: 10 }),
+      shells: [],
+      handTrail: [],
+      count: 0,
+      gateY: -40,
+      suctionY: 280,
+      grabRadius: 150,
+      targetX: 0,
+      targetY: 0,
+      hand: { visible: false, fist: false, point: { x: width / 2, y: height / 2 }, velocity: { x: 0, y: 0 } },
+      resize() {
+        if (!this.shells.length) this.init();
+        this.bounds = { w: width, h: height };
+        this.targetX = width - 110;
+        this.targetY = 24;
+      },
+      init() {
+        this.shells = [];
+        for (let i = 0; i < 16; i++) {
+          this.shells.push({
+            x: 120 + Math.random() * (width - 240),
+            y: height - 170 - Math.random() * 130,
+            vx: 0, vy: 0,
+            size: 120 + Math.random() * 64,
+            img: sharedShellSprites[i % sharedShellSprites.length],
+            orbitSeed: Math.random() * Math.PI * 2,
+            restX: 120 + Math.random() * (width - 240),
+            restY: height - 170 - Math.random() * 130,
+            spent: false
+          });
+        }
+      },
+      update(dt) {
+        this.handTrail = this.hand.fist
+          ? [{ x: this.hand.point.x, y: this.hand.point.y, vx: this.hand.velocity.x, vy: this.hand.velocity.y }, ...this.handTrail].slice(0, 36)
+          : this.handTrail.slice(0, Math.max(0, this.handTrail.length - 1));
+        for (let i = 0; i < this.shells.length; i++) {
+          const shell = this.shells[i];
+          if (shell.spent) continue;
+          const handDist = Math.hypot(shell.x - this.hand.point.x, shell.y - this.hand.point.y);
+          const liftingNow = this.hand.velocity.y < -1.4;
+          const activeGrabRadius = liftingNow ? this.grabRadius * 2.1 : this.grabRadius;
+          if (this.hand.fist && this.handTrail.length && handDist < activeGrabRadius) {
+            const t = this.handTrail[Math.min(this.handTrail.length - 1, 4 + (i % 6) * 2)];
+            const angle = shell.orbitSeed + i * 0.52;
+            const radius = 58 * (0.5 + (i % 4) * 0.18);
+            const target = { x: t.x + Math.cos(angle) * radius, y: t.y + Math.sin(angle) * radius * 0.76 };
+            const lifting = liftingNow || t.vy < -1.4;
+            const catchStrength = lifting ? 0.0038 : 0.0012;
+            const velocityBlend = lifting ? 0.0032 : 0.0011;
+            shell.vx += (target.x - shell.x) * catchStrength + t.vx * velocityBlend;
+            shell.vy += (target.y - shell.y) * catchStrength + t.vy * velocityBlend;
+          } else {
+            shell.vx += (shell.restX - shell.x) * 0.0018 + Math.sin((performance.now() * 0.0012) + shell.orbitSeed) * 0.008;
+            shell.vy += (shell.restY - shell.y) * 0.0024 + Math.cos((performance.now() * 0.0014) + shell.orbitSeed) * 0.006;
+          }
+          if (shell.y < this.suctionY) {
+            const pull = Math.pow(1 - clamp(shell.y / this.suctionY, 0, 1), 1.05);
+            shell.vy -= 2.1 * pull;
+            shell.vx += (this.targetX - shell.x) * 0.012 * pull;
+          }
+          shell.vx *= 0.92;
+          shell.vy *= 0.92;
+          shell.x = clamp(shell.x + shell.vx, 70, width - 70);
+          shell.y += shell.vy;
+          if (shell.y < this.gateY) {
+            this.count += 1;
+            updateHud();
+            shell.spent = true;
+          }
+          shell.y = clamp(shell.y, -120, height - 40);
+        }
+      },
+      draw(ctx) {
+        ctx.save();
+        if (this.hand.visible && this.hand.fist) {
+          ctx.beginPath();
+          ctx.arc(this.hand.point.x, this.hand.point.y, 220, 0, Math.PI * 2);
+          ctx.strokeStyle = "rgba(214,214,214,0.14)";
+          ctx.stroke();
+        }
+        for (const shell of this.shells) {
+          if (shell.spent) continue;
+          ctx.save();
+          ctx.translate(shell.x, shell.y);
+          ctx.drawImage(shell.img, -shell.size * 0.62, -shell.size * 0.5, shell.size * 1.24, shell.size);
+          ctx.restore();
+        }
+        if (this.hand.visible) {
+          ctx.beginPath();
+          ctx.arc(this.hand.point.x, this.hand.point.y, this.hand.fist ? 10 : 18, 0, Math.PI * 2);
+          ctx.fillStyle = this.hand.fist ? "rgba(242, 242, 242, 0.92)" : "rgba(255,255,255,0.26)";
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+    };
+
+    const stage2 = {
+      engine: Engine.create({ gravity: { x: 0, y: 0.72 }, positionIterations: 12, velocityIterations: 10 }),
+      notes: [],
+      coins: [],
+      count: 0,
+      pulse: 0,
+      targetX: 0,
+      targetY: 0,
+      worldBodies: [],
+      walletRect: { x: 0, y: 0, w: 0, h: 0 },
+      counterRect: { x: 0, y: 0, w: 0, h: 0 },
+      pinch: {
+        visible: false,
+        active: false,
+        mode: "single",
+        closed: false,
+        strength: 0,
+        point: { x: width / 2, y: height / 2 },
+        velocity: { x: 0, y: 0 }
+      },
+      hold: { item: null, kind: null, offset: { x: 0, y: 0 }, corner: null, startTs: 0, pullMax: 0 },
+      resize() {
+        this.targetX = width - 110;
+        this.targetY = 24;
+        const walletW = Math.min(width * 0.76, 920);
+        const walletH = Math.min(height * 0.29, 290);
+        this.walletRect = {
+          x: (width - walletW) * 0.5,
+          y: height - walletH - 42,
+          w: walletW,
+          h: walletH
+        };
+        this.counterRect = {
+          x: 0,
+          y: 0,
+          w: width,
+          h: Math.min(200, Math.max(160, height * 0.22))
+        };
+        if (!this.notes.length && !this.coins.length) this.init();
+        this.buildWorld();
+        this.layoutWallet();
+      },
+      init() {
+        this.notes = [];
+        this.coins = [];
+        const noteAssets = sharedMoneyAssets.filter((asset) => asset.type === "note");
+        const coinAssets = sharedMoneyAssets.filter((asset) => asset.type === "coin");
+        for (let stack = 0; stack < 3; stack++) {
+          for (let depth = 0; depth < 2; depth++) {
+            const asset = noteAssets[(stack + depth) % noteAssets.length];
+            this.notes.push({
+              ...asset,
+              countValue: Number.parseInt(asset.value, 10),
+              stack,
+              depth,
+              x: 0,
+              y: 0,
+              homeX: 0,
+              homeY: 0,
+              angle: (Math.random() - 0.5) * 0.03,
+              vx: 0,
+              vy: 0,
+              angularVelocity: 0,
+              peel: 0,
+              detached: false,
+              counted: false,
+              flutter: 0,
+              flutterPhase: Math.random() * Math.PI * 2,
+              returnBlend: 0,
+              restoring: false,
+              shadowLift: 0,
+              releaseAt: 0,
+              driftPhase: Math.random() * Math.PI * 2,
+              driftSpeed: 0.0008 + Math.random() * 0.0011,
+              fadeOut: 0,
+              fadeVY: 0
+            });
+          }
+        }
+        for (let i = 0; i < 6; i++) {
+          const asset = coinAssets[i % coinAssets.length];
+          const radius = asset.w * 0.3;
+          const body = Bodies.circle(0, 0, radius, {
+            restitution: 0.48 + (i % 2) * 0.08,
+            friction: 0.025,
+            frictionAir: 0.014,
+            density: 0.0014,
+            slop: 0.08
+          });
+          this.coins.push({
+            ...asset,
+            radius,
+            countValue: Number.parseInt(asset.value, 10),
+            body,
+            counted: false,
+            scoredAt: 0,
+            spawnIndex: i,
+            fadeOut: 0
+          });
+        }
+      },
+      buildWorld() {
+        const world = this.engine.world;
+        for (const body of this.worldBodies) World.remove(world, body);
+        this.worldBodies = [];
+        const wallThickness = 80;
+        const bodies = [
+          Bodies.rectangle(width / 2, height + wallThickness * 0.5, width + 200, wallThickness, { isStatic: true }),
+          Bodies.rectangle(-wallThickness * 0.5, height / 2, wallThickness, height * 2, { isStatic: true }),
+          Bodies.rectangle(width + wallThickness * 0.5, height / 2, wallThickness, height * 2, { isStatic: true })
+        ];
+        this.worldBodies.push(...bodies);
+        World.add(world, bodies);
+        for (const coin of this.coins) {
+          if (!coin.body.world) World.add(world, coin.body);
+        }
+      },
+      layoutWallet() {
+        const stackGap = Math.min(this.walletRect.w * 0.24, 214);
+        const baseX = this.walletRect.x + this.walletRect.w * 0.24;
+        const baseY = this.walletRect.y + this.walletRect.h * 0.48;
+        for (const note of this.notes) {
+          const homeX = baseX + note.stack * stackGap + (Math.random() - 0.5) * 42 + note.depth * 10;
+          const homeY = baseY + note.stack * 12 + note.depth * 18 + (Math.random() - 0.5) * 26;
+          note.homeX = homeX;
+          note.homeY = homeY;
+          if (!note.detached && !note.restoring && this.hold.item !== note && !note.counted) {
+            note.x = homeX;
+            note.y = homeY;
+            note.angle = (Math.random() - 0.5) * 0.08;
+          }
+        }
+        const coinStartX = this.walletRect.x + this.walletRect.w * 0.66;
+        const coinStartY = this.walletRect.y + this.walletRect.h * 0.44;
+        this.coins.forEach((coin, index) => {
+          coin.spawnX = coinStartX + (index % 3) * 78 + (Math.random() - 0.5) * 34;
+          coin.spawnY = coinStartY + Math.floor(index / 3) * 72 + (Math.random() - 0.5) * 30;
+          if (!coin.counted && this.hold.item !== coin) {
+            Body.setPosition(coin.body, { x: coin.spawnX, y: coin.spawnY });
+            Body.setVelocity(coin.body, { x: (Math.random() - 0.5) * 0.8, y: (Math.random() - 0.5) * 0.6 });
+            Body.setAngle(coin.body, 0);
+            Body.setAngularVelocity(coin.body, (Math.random() - 0.5) * 0.08);
+          }
+        });
+      },
+      topNoteForStack(stack) {
+        return this.notes
+          .filter((note) => note.stack === stack)
+          .sort((a, b) => b.depth - a.depth)[0];
+      },
+      topPickableNote() {
+        return this.notes.filter((note) => !note.counted && this.topNoteForStack(note.stack) === note);
+      },
+      pickCandidate(point) {
+        let best = null;
+        let bestDist = 108;
+        for (const note of this.topPickableNote()) {
+          const corners = [
+            { x: note.x - note.w * 0.42, y: note.y - note.h * 0.33, corner: "left", weight: 0.86 },
+            { x: note.x + note.w * 0.42, y: note.y - note.h * 0.33, corner: "right", weight: 0.86 },
+            { x: note.x - note.w * 0.26, y: note.y - note.h * 0.22, corner: "left", weight: 1 },
+            { x: note.x + note.w * 0.26, y: note.y - note.h * 0.22, corner: "right", weight: 1 },
+            { x: note.x, y: note.y - note.h * 0.18, corner: Math.abs(point.x - note.x) < 1 ? "left" : (point.x < note.x ? "left" : "right"), weight: 1.08 }
+          ];
+          for (const c of corners) {
+            const d = Math.hypot(c.x - point.x, c.y - point.y) * c.weight;
+            if (d < bestDist) {
+              best = { item: note, kind: "note", corner: c.corner };
+              bestDist = d;
+            }
+          }
+        }
+        for (const coin of this.coins) {
+          if (coin.counted) continue;
+          const pos = coin.body.position;
+          const d = Math.hypot(pos.x - point.x, pos.y - point.y);
+          if (d < coin.radius * 0.75 && d < bestDist + 8) {
+            best = { item: coin, kind: "coin", corner: null };
+            bestDist = d;
+          }
+        }
+        return best;
+      },
+      beginHold(candidate, ts) {
+        this.hold.item = candidate.item;
+        this.hold.kind = candidate.kind;
+        this.hold.corner = candidate.corner;
+        this.hold.startTs = ts;
+        this.hold.pullMax = 0;
+        if (candidate.kind === "note") {
+          const note = candidate.item;
+          note.detached = false;
+          note.peel = 0;
+          note.restoring = false;
+          note.shadowLift = 0;
+          note.fadeOut = 0;
+          note.fadeVY = 0;
+          note.grabCorner = candidate.corner;
+          this.hold.offset = {
+            x: note.x - this.pinch.point.x,
+            y: note.y - this.pinch.point.y
+          };
+        } else {
+          const pos = candidate.item.body.position;
+          this.hold.offset = { x: pos.x - this.pinch.point.x, y: pos.y - this.pinch.point.y };
+        }
+      },
+      releaseHold(ts) {
+        if (!this.hold.item) return;
+        const item = this.hold.item;
+        if (this.hold.kind === "note") {
+          const note = item;
+          const deliberatePull = this.hold.pullMax > 118 && ts - this.hold.startTs > 180;
+          if (note.detached && deliberatePull) {
+            note.flutter = 1;
+            note.releaseAt = ts;
+            note.vx += this.pinch.velocity.x * 0.44;
+            note.vy += this.pinch.velocity.y * 0.34;
+            note.angularVelocity += (this.hold.corner === "left" ? -1 : 1) * 0.028;
+          } else if (!note.counted) {
+            note.restoring = true;
+            note.returnBlend = 0;
+            note.peel = Math.min(note.peel, 0.36);
+          }
+        } else {
+          const coin = item;
+          if (!coin.counted && pointInRect(coin.body.position, this.counterRect)) {
+            this.scoreCoin(coin, ts);
+          }
+        }
+        this.hold.item = null;
+        this.hold.kind = null;
+        this.hold.corner = null;
+      },
+      scoreNote(note) {
+        if (note.counted) return;
+        note.counted = true;
+        if (this.hold.item === note) {
+          this.hold.item = null;
+          this.hold.kind = null;
+          this.hold.corner = null;
+        }
+        this.count += note.countValue;
+        this.pulse = 1;
+        updateHud();
+        note.restoring = false;
+        note.returnBlend = 1;
+        note.peel = 0;
+        note.detached = false;
+        note.flutter = 0;
+        note.shadowLift = 0;
+        note.vx = 0;
+        note.vy = -2.6;
+        note.fadeVY = -2.6 - Math.random() * 0.8;
+        note.fadeOut = 1;
+        note.grabCorner = null;
+      },
+      scoreCoin(coin, ts) {
+        if (coin.counted) return;
+        coin.counted = true;
+        coin.scoredAt = ts;
+        coin.fadeOut = 1;
+        this.count += coin.countValue;
+        this.pulse = 1;
+        updateHud();
+        Body.setVelocity(coin.body, {
+          x: coin.body.velocity.x * 0.36 + this.pinch.velocity.x * 0.05,
+          y: Math.min(-3.8, coin.body.velocity.y * 0.24 - 2.4)
+        });
+        Body.setAngularVelocity(coin.body, coin.body.angularVelocity + (Math.random() - 0.5) * 0.18);
+      },
+      updateNote(note, ts) {
+        const holding = this.hold.item === note && this.hold.kind === "note" && this.pinch.visible && this.pinch.closed;
+        if (holding) {
+          const pullVec = {
+            x: this.pinch.point.x - note.homeX,
+            y: this.pinch.point.y - note.homeY
+          };
+          const pullDist = Math.hypot(pullVec.x * 0.8, pullVec.y * 1.16);
+          this.hold.pullMax = Math.max(this.hold.pullMax, pullDist);
+          note.peel = clamp(pullDist / 116, 0, 1);
+          note.shadowLift = note.peel;
+          const deliberatePull = pullDist > 102 && ts - this.hold.startTs > 160;
+          if (deliberatePull) note.detached = true;
+          if (note.detached) {
+            const targetX = this.pinch.point.x + this.hold.offset.x + (this.hold.corner === "left" ? note.w * 0.08 : -note.w * 0.08);
+            const targetY = this.pinch.point.y + this.hold.offset.y;
+            note.vx += (targetX - note.x) * 0.16 + this.pinch.velocity.x * 0.11;
+            note.vy += (targetY - note.y) * 0.16 + this.pinch.velocity.y * 0.08;
+            note.angle += (((this.hold.corner === "left" ? -0.17 : 0.17) + this.pinch.velocity.x * 0.0024) - note.angle) * 0.18;
+          } else {
+            const liftX = note.homeX + pullVec.x * 0.38;
+            const liftY = note.homeY + pullVec.y * 0.24 - note.peel * 26;
+            note.x += (liftX - note.x) * 0.24;
+            note.y += (liftY - note.y) * 0.24;
+            note.angle += (((this.hold.corner === "left" ? -0.08 : 0.08) * note.peel) - note.angle) * 0.16;
+            note.vx *= 0.56;
+            note.vy *= 0.56;
+          }
+        } else {
+          if (note.counted) {
+            note.fadeVY -= 0.08;
+            note.y += note.fadeVY;
+            note.fadeOut *= 0.9;
+            note.shadowLift *= 0.78;
+            note.peel *= 0.78;
+            return;
+          }
+          if (note.flutter > 0.02) {
+            const flutterWave = Math.sin((ts - note.releaseAt) * 0.035 + note.flutterPhase);
+            note.vx *= 0.96;
+            note.vy *= 0.96;
+            note.vy += 0.06;
+            note.x += note.vx;
+            note.y += note.vy;
+            note.angle += flutterWave * 0.012 + note.angularVelocity;
+            note.angularVelocity *= 0.9;
+            note.flutter *= 0.94;
+            note.peel *= 0.92;
+            note.shadowLift = Math.max(note.shadowLift * 0.92, note.flutter * 0.72);
+            if (pointInRect({ x: note.x, y: note.y }, this.counterRect)) {
+              this.scoreNote(note);
+            } else if (note.flutter < 0.14) {
+              note.restoring = true;
+              note.returnBlend = 0;
+            }
+          } else if (note.restoring || note.detached) {
+            note.returnBlend = clamp(note.returnBlend + 0.055, 0, 1);
+            note.x += (note.homeX - note.x) * (0.12 + note.returnBlend * 0.08);
+            note.y += (note.homeY - note.y) * (0.14 + note.returnBlend * 0.08);
+            note.angle += (0 - note.angle) * 0.18;
+            note.peel *= 0.86;
+            note.shadowLift *= 0.84;
+            if (note.returnBlend > 0.98 && Math.hypot(note.x - note.homeX, note.y - note.homeY) < 2) {
+              note.restoring = false;
+              note.detached = false;
+              note.x = note.homeX;
+              note.y = note.homeY;
+              note.vx = 0;
+              note.vy = 0;
+              note.peel = 0;
+              note.shadowLift = 0;
+            }
+          } else {
+            const driftX = Math.sin(ts * note.driftSpeed + note.driftPhase) * 10;
+            const driftY = Math.cos(ts * note.driftSpeed * 0.82 + note.driftPhase * 1.2) * 6;
+            note.x += ((note.homeX + driftX) - note.x) * 0.08;
+            note.y += ((note.homeY + driftY) - note.y) * 0.08;
+            note.angle += ((((Math.sin(ts * note.driftSpeed + note.driftPhase) * 0.02)) - note.angle) * 0.08);
+            note.peel *= 0.86;
+            note.shadowLift *= 0.84;
+          }
+        }
+        note.vx *= 0.88;
+        note.vy *= 0.88;
+        note.x = clamp(note.x + note.vx, note.w / 2 + 18, width - note.w / 2 - 18);
+        note.y = clamp(note.y + note.vy, note.h / 2 - 28, height - note.h / 2 - 14);
+        if (holding && note.detached && pointInRect({ x: note.x, y: note.y }, this.counterRect)) {
+          this.scoreNote(note);
+        }
+      },
+      updateCoin(coin, ts) {
+        const holding = this.hold.item === coin && this.hold.kind === "coin" && this.pinch.visible && this.pinch.closed;
+        if (holding) {
+          const target = {
+            x: this.pinch.point.x + this.hold.offset.x,
+            y: this.pinch.point.y + this.hold.offset.y
+          };
+          const pos = coin.body.position;
+          Body.setVelocity(coin.body, {
+            x: (target.x - pos.x) * 0.26 + this.pinch.velocity.x * 0.18,
+            y: (target.y - pos.y) * 0.26 + this.pinch.velocity.y * 0.14
+          });
+          Body.setAngularVelocity(coin.body, coin.body.angularVelocity + this.pinch.velocity.x * 0.0015);
+        } else if (coin.counted) {
+          coin.fadeOut *= 0.9;
+          Body.setVelocity(coin.body, {
+            x: coin.body.velocity.x * 0.96,
+            y: coin.body.velocity.y - 0.08
+          });
+          if (coin.fadeOut < 0.04 && coin.body.world) {
+            Body.setPosition(coin.body, { x: -9999, y: -9999 });
+            Body.setVelocity(coin.body, { x: 0, y: 0 });
+            Body.setAngularVelocity(coin.body, 0);
+          }
+        } else if (!coin.counted && pointInRect(coin.body.position, this.walletRect)) {
+          Body.setVelocity(coin.body, {
+            x: coin.body.velocity.x * 0.992 + Math.sin(ts * 0.0012 + coin.spawnIndex) * 0.008,
+            y: coin.body.velocity.y * 0.992 + Math.cos(ts * 0.0011 + coin.spawnIndex * 1.7) * 0.006
+          });
+        }
+      },
+      update() {
+        const ts = performance.now();
+        if ((!this.pinch.visible || !this.pinch.closed) && this.hold.item) {
+          this.releaseHold(ts);
+        }
+        if (this.pinch.visible && this.pinch.closed && !this.hold.item) {
+          const candidate = this.pickCandidate(this.pinch.point);
+          if (candidate) this.beginHold(candidate, ts);
+        }
+        Engine.update(this.engine, 1000 / 60);
+        for (const note of this.notes) this.updateNote(note, ts);
+        for (const coin of this.coins) this.updateCoin(coin, ts);
+        this.pulse *= 0.92;
+      },
+      drawNote(ctx, note) {
+        const sliceCount = 18;
+        ctx.save();
+        ctx.translate(note.x, note.y);
+        ctx.rotate(note.angle);
+        ctx.globalAlpha = note.counted ? note.fadeOut : 0.98;
+        const shadowAlpha = 0.12 + note.shadowLift * 0.28;
+        ctx.shadowColor = `rgba(0,0,0,${shadowAlpha})`;
+        ctx.shadowBlur = 18 + note.shadowLift * 24;
+        ctx.shadowOffsetY = 10 + note.shadowLift * 20;
+        for (let i = 0; i < sliceCount; i++) {
+          const t = i / (sliceCount - 1);
+          const sx = t * note.img.width;
+          const sw = note.img.width / sliceCount + 0.6;
+          const dx = -note.w / 2 + t * note.w;
+          const dw = note.w / sliceCount + 0.8;
+          const grabBias = note.grabCorner === "left" ? 1 - t : t;
+          const curlLift = Math.sin(t * Math.PI) * note.peel * 14 + grabBias * note.peel * 34;
+          const curlShear = (grabBias - 0.5) * note.peel * 26;
+          ctx.drawImage(
+            note.img,
+            sx, 0, sw, note.img.height,
+            dx + curlShear, -note.h / 2 - curlLift, dw, note.h + curlLift * 0.24
+          );
+        }
+        ctx.restore();
+      },
+      draw(ctx) {
+        ctx.save();
+        const counterGlow = 0.18 + this.pulse * 0.18;
+        ctx.fillStyle = "rgba(6,6,6,0.28)";
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.save();
+        const zoneGrad = ctx.createLinearGradient(0, 0, 0, this.counterRect.h + 36);
+        zoneGrad.addColorStop(0, `rgba(255,255,255,${0.08 + this.pulse * 0.05})`);
+        zoneGrad.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.fillStyle = zoneGrad;
+        ctx.strokeStyle = `rgba(255,255,255,${0.12 + this.pulse * 0.12})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.rect(this.counterRect.x, this.counterRect.y, this.counterRect.w, this.counterRect.h);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(this.counterRect.x + 22, this.counterRect.h);
+        ctx.lineTo(this.counterRect.w - 22, this.counterRect.h);
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.save();
+        ctx.fillStyle = "rgba(0,0,0,0.28)";
+        ctx.strokeStyle = "rgba(255,255,255,0.1)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(this.walletRect.x, this.walletRect.y, this.walletRect.w, this.walletRect.h, 34);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.fillStyle = "rgba(242,242,242,0.72)";
+        ctx.font = "600 14px Apple SD Gothic Neo, Noto Sans KR, sans-serif";
+        ctx.fillText("COUNTING ZONE", this.counterRect.x + 24, this.counterRect.y + 28);
+        ctx.fillStyle = "rgba(242,242,242,0.56)";
+        ctx.fillText("화폐를 화면 맨 위 영역으로 올리면 카운트됩니다", this.counterRect.x + 24, this.counterRect.y + 52);
+        ctx.fillStyle = "rgba(242,242,242,0.72)";
+        ctx.fillText("WALLET", this.walletRect.x + 24, this.walletRect.y + 28);
+        ctx.fillStyle = "rgba(242,242,242,0.52)";
+        ctx.fillText("지폐는 모서리를 pinch 해서 천천히 떼어내고, 동전은 올려두면 튕기며 자리잡습니다", this.walletRect.x + 24, this.walletRect.y + 52);
+
+        for (const coin of this.coins) {
+          const pos = coin.body.position;
+          if (pos.x < -9000) continue;
+          ctx.save();
+          ctx.translate(pos.x, pos.y);
+          ctx.rotate(coin.body.angle);
+          ctx.globalAlpha = coin.counted ? coin.fadeOut : 0.98;
+          ctx.shadowColor = `rgba(0,0,0,${coin.counted ? 0.24 : 0.18})`;
+          ctx.shadowBlur = coin.counted ? 16 : 10;
+          ctx.shadowOffsetY = 6;
+          ctx.drawImage(coin.img, -coin.w / 2, -coin.h / 2, coin.w, coin.h);
+          ctx.restore();
+        }
+
+        const noteOrder = [...this.notes].sort((a, b) => a.depth - b.depth || a.stack - b.stack);
+        for (const note of noteOrder) {
+          if (note.counted && note.fadeOut < 0.04) continue;
+          this.drawNote(ctx, note);
+        }
+
+        if (this.pinch.visible) {
+          ctx.beginPath();
+          ctx.arc(this.pinch.point.x, this.pinch.point.y, this.pinch.closed ? 16 : 24, 0, Math.PI * 2);
+          ctx.strokeStyle = this.pinch.closed ? "rgba(245,245,245,0.94)" : "rgba(214,214,214,0.58)";
+          ctx.lineWidth = this.pinch.closed ? 2.4 : 1.6;
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+    };
+
+    const stage3 = {
+      fingertips: new Map(),
+      particles: [],
+      total: 0,
+      zonePulse: 0,
+      gateY: -30,
+      suctionY: 165,
+      targetX: 0,
+      targetY: 0,
+      resize() {
+        this.gateY = -30;
+        this.targetX = width - 110;
+        this.targetY = 24;
+      },
+      detectTap(state, now) {
+        if (state.history.length < 3 || now < state.cooldownUntil) return false;
+        const recent = state.history[state.history.length - 1];
+        const prev = state.history[state.history.length - 2];
+        const dy = recent.y - prev.y;
+        const dx = recent.x - prev.x;
+        const speed = Math.hypot(recent.vx, recent.vy);
+        const jabDown = dy > 2 && Math.abs(dx) < 72;
+        const fastEnough = speed > 3.2 || recent.vy > 2.6;
+        const rebound = recent.vy < prev.vy + 8;
+        if (jabDown && fastEnough && rebound) {
+          state.cooldownUntil = now + 100;
+          return true;
+        }
+        return false;
+      },
+      spawn(x, y) {
+        const values = [10, 50, 100];
+        const labels = ["10", "50", "100", "+"];
+        const value = values[Math.floor(Math.random() * values.length)];
+        this.particles.push({
+          x, y,
+          vx: (Math.random() - 0.5) * 0.2,
+          vy: -1.6 - Math.random() * 1.0,
+          label: Math.random() < 0.82 ? String(value) : labels[Math.floor(Math.random() * labels.length)],
+          value,
+          alpha: 1,
+          arrived: false
+        });
+      },
+      update() {
+        this.zonePulse *= 0.92;
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+          const p = this.particles[i];
+          if (!p.arrived && p.y < this.suctionY) {
+            const pull = Math.pow(1 - clamp(p.y / this.suctionY, 0, 1), 1.25);
+            p.vy -= 0.34 * pull;
+            p.vx += (this.targetX - p.x) * 0.0052 * pull;
+          }
+          p.vy -= 0.03;
+          p.vx *= 0.992;
+          p.vy *= 0.992;
+          p.x += p.vx;
+          p.y += p.vy;
+          if (!p.arrived && p.y < this.gateY) {
+            p.arrived = true;
+            this.total += p.value;
+            this.zonePulse = 1;
+            updateHud();
+          }
+          if (p.arrived) p.alpha *= 0.92;
+          if (p.alpha < 0.05) this.particles.splice(i, 1);
+        }
+      },
+      draw(ctx) {
+        ctx.save();
+        for (const p of this.particles) {
+          ctx.save();
+          ctx.shadowColor = `rgba(228,228,228,${p.alpha * 0.38})`;
+          ctx.shadowBlur = 18;
+          ctx.fillStyle = `rgba(240,240,240,${p.alpha})`;
+          ctx.font = "700 18px SFMono-Regular, Menlo, monospace";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(p.label, p.x, p.y);
+          ctx.restore();
+        }
+        for (const state of this.fingertips.values()) {
+          if (!state.visible) continue;
+          state.flash *= 0.88;
+          ctx.beginPath();
+          ctx.arc(state.point.x, state.point.y, 16 + state.flash * 34, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(238,238,238,${0.24 + state.flash * 0.46})`;
+          ctx.lineWidth = 1.8;
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(state.point.x, state.point.y, 7, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(242,242,242,0.94)";
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+    };
+
+    const stage4 = {
+      nodes: [],
+      edges: [],
+      adjacency: new Map(),
+      pulses: [],
+      carriers: [],
+      activity: 0,
+      topBursts: [],
+      suctionY: 165,
+      targetX: 0,
+      targetY: 0,
+      reveal: 0,
+      blink: {
+        visible: false,
+        blinkCooldownUntil: 0,
+        faceCenter: { x: width / 2, y: height * 0.45 },
+        leftEyeCenter: { x: width * 0.46, y: height * 0.42 },
+        rightEyeCenter: { x: width * 0.54, y: height * 0.42 },
+        blinkFlash: 0
+      },
+      resize() {
+        this.targetX = width - 110;
+        this.targetY = 24;
+        this.build();
+      },
+      build() {
+        this.nodes = [];
+        this.edges = [];
+        this.adjacency = new Map();
+        const cols = 7, rows = 5;
+        const marginX = width * 0.1, marginY = height * 0.15;
+        const gapX = (width - marginX * 2) / (cols - 1);
+        const gapY = (height - marginY * 2) / (rows - 1);
+        for (let row = 0; row < rows; row++) {
+          for (let col = 0; col < cols; col++) {
+            const id = row * cols + col;
+            this.nodes.push({ id, x: marginX + col * gapX + (Math.random() - 0.5) * 34, y: marginY + row * gapY + (Math.random() - 0.5) * 28, r: 4 + Math.random() * 2, flash: 0 });
+            this.adjacency.set(id, new Set());
+          }
+        }
+        const link = (a, b) => {
+          const key = a < b ? `${a}-${b}` : `${b}-${a}`;
+          if (this.edges.some((e) => e.key === key)) return;
+          this.edges.push({ key, a, b, glow: 0 });
+          this.adjacency.get(a).add(b);
+          this.adjacency.get(b).add(a);
+        };
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const id = r * cols + c;
+            if (c < cols - 1) link(id, id + 1);
+            if (r < rows - 1) link(id, id + cols);
+            if (c < cols - 1 && r < rows - 1 && Math.random() < 0.68) link(id, id + cols + 1);
+            if (c > 0 && r < rows - 1 && Math.random() < 0.46) link(id, id + cols - 1);
+          }
+        }
+      },
+      nearest(point) {
+        let best = this.nodes[0], bestDist = Infinity;
+        for (const node of this.nodes) {
+          const d = Math.hypot(node.x - point.x, node.y - point.y);
+          if (d < bestDist) { best = node; bestDist = d; }
+        }
+        return best;
+      },
+      burst(originId) {
+        const visited = new Set([originId]);
+        const queue = [{ id: originId, depth: 0, parent: null }];
+        const baseTime = performance.now();
+        while (queue.length) {
+          const cur = queue.shift();
+          this.pulses.push({ type: "node", nodeId: cur.id, start: baseTime + cur.depth * 70, duration: 260 });
+          if (cur.parent !== null) {
+            this.carriers.push({
+              fromId: cur.parent,
+              toId: cur.id,
+              start: baseTime + cur.depth * 70,
+              duration: 220,
+              alpha: 1,
+              label: ["0", "1", "10", "100", "+", "01", "101", "11"][Math.floor(Math.random() * 8)],
+              kind: Math.random() < 0.78 ? "digit" : "light"
+            });
+          }
+          if (cur.depth > 5) continue;
+          for (const n of this.adjacency.get(cur.id)) {
+            if (visited.has(n)) continue;
+            visited.add(n);
+            queue.push({ id: n, depth: cur.depth + 1, parent: cur.id });
+          }
+        }
+        updateHud();
+        this.blink.blinkFlash = 1;
+        this.reveal = 1;
+      },
+      update(ts) {
+        this.reveal *= 0.9;
+        this.nodes.forEach((n) => n.flash *= 0.9);
+        this.edges.forEach((e) => e.glow *= 0.9);
+        for (let i = this.pulses.length - 1; i >= 0; i--) {
+          const p = this.pulses[i];
+          const t = (ts - p.start) / p.duration;
+          if (t < 0) continue;
+          if (t >= 1) { this.pulses.splice(i, 1); continue; }
+          const eased = 1 - Math.abs(1 - t * 2);
+          this.nodes[p.nodeId].flash = Math.max(this.nodes[p.nodeId].flash, eased);
+        }
+        for (let i = this.carriers.length - 1; i >= 0; i--) {
+          const c = this.carriers[i];
+          const t = (ts - c.start) / c.duration;
+          if (t < 0) continue;
+          if (t >= 1) { this.carriers.splice(i, 1); continue; }
+          c.progress = 1 - Math.pow(1 - t, 2);
+          c.alpha = 1 - t * 0.25;
+        }
+        for (let i = this.topBursts.length - 1; i >= 0; i--) {
+          const burst = this.topBursts[i];
+          if (burst.y < this.suctionY) {
+            const pull = Math.pow(1 - clamp(burst.y / this.suctionY, 0, 1), 1.25);
+            burst.speed += 0.18 * pull;
+            burst.x += (this.targetX - burst.x) * 0.03 * pull;
+          }
+          burst.y -= burst.speed;
+          burst.alpha *= 0.9;
+          if (burst.y < 16 || burst.alpha < 0.08) {
+            this.topBursts.splice(i, 1);
+          }
+        }
+        this.blink.blinkFlash *= 0.9;
+      },
+      draw(ctx) {
+        const activeVisual = this.reveal >= 0.035 || this.topBursts.length > 0 || this.carriers.length > 0 || this.pulses.length > 0;
+        if (!activeVisual) {
+          return;
+        }
+        ctx.save();
+        ctx.fillStyle = `rgba(0,0,0,${0.22 * this.reveal})`;
+        ctx.fillRect(0, 0, width, height);
+        ctx.globalCompositeOperation = "destination-out";
+        for (const eye of [this.blink.leftEyeCenter, this.blink.rightEyeCenter]) {
+          const grad = ctx.createRadialGradient(eye.x, eye.y, 6, eye.x, eye.y, 90);
+          grad.addColorStop(0, `rgba(0,0,0,${0.95 * this.reveal})`);
+          grad.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(eye.x, eye.y, 92, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+        for (const edge of this.edges) {
+          const a = this.nodes[edge.a], b = this.nodes[edge.b];
+          ctx.strokeStyle = `rgba(214,214,214,${(0.05 + edge.glow * 0.24) * this.reveal})`;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y);
+          ctx.lineTo(b.x, b.y);
+          ctx.stroke();
+        }
+        for (const node of this.nodes) {
+          const flash = node.flash;
+          const grad = ctx.createRadialGradient(node.x, node.y, 1, node.x, node.y, 24 + flash * 18);
+          grad.addColorStop(0, `rgba(245,245,245,${(0.44 + flash * 0.12) * this.reveal})`);
+          grad.addColorStop(0.38, `rgba(190,190,190,${(0.14 + flash * 0.18) * this.reveal})`);
+          grad.addColorStop(1, "rgba(180,180,180,0)");
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, 24 + flash * 18, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.fillStyle = `rgba(240,240,240,${(0.34 + flash * 0.22) * this.reveal})`;
+          ctx.arc(node.x, node.y, node.r + flash * 2.6, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        for (const c of this.carriers) {
+          const from = this.nodes[c.fromId], to = this.nodes[c.toId];
+          const x = from.x + (to.x - from.x) * c.progress;
+          const y = from.y + (to.y - from.y) * c.progress;
+          if (c.kind === "digit") {
+            ctx.shadowColor = `rgba(236,236,236,${c.alpha * 0.24 * this.reveal})`;
+            ctx.shadowBlur = 18;
+            ctx.fillStyle = `rgba(242,242,242,${c.alpha * this.reveal})`;
+            ctx.font = "700 17px SFMono-Regular, Menlo, monospace";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(c.label, x, y);
+          } else {
+            ctx.shadowColor = `rgba(236,236,236,${c.alpha * 0.24 * this.reveal})`;
+            ctx.shadowBlur = 16;
+            ctx.fillStyle = `rgba(238,238,238,${c.alpha * this.reveal})`;
+            ctx.beginPath();
+            ctx.arc(x, y, 3.4, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+        for (const burst of this.topBursts) {
+          ctx.save();
+          ctx.shadowColor = `rgba(238,238,238,${burst.alpha * 0.26 * this.reveal})`;
+          ctx.shadowBlur = 18;
+          ctx.fillStyle = `rgba(242,242,242,${burst.alpha * this.reveal})`;
+          ctx.font = "700 20px SFMono-Regular, Menlo, monospace";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(burst.label, burst.x, burst.y);
+          ctx.restore();
+        }
+        if (this.blink.visible) {
+          ctx.strokeStyle = `rgba(232,232,232,${(0.1 + this.blink.blinkFlash * 0.12) * this.reveal})`;
+          ctx.lineWidth = 1.2;
+          for (const eye of [this.blink.leftEyeCenter, this.blink.rightEyeCenter]) {
+            ctx.beginPath();
+            ctx.ellipse(eye.x, eye.y, 36 + this.blink.blinkFlash * 12, 18 + this.blink.blinkFlash * 8, 0, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+        }
+      }
+    };
+
+    const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
+    hands.setOptions({ maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.55, minTrackingConfidence: 0.45 });
+    hands.onResults((results) => {
+      if (activeStage === 0) {
+        if (!results.multiHandLandmarks || !results.multiHandLandmarks.length) {
+          stage1.hand.visible = false;
+          stage1.hand.fist = false;
+          stage1.handTrail.length = 0;
+          return;
+        }
+        const lm = results.multiHandLandmarks[0];
+        const wrist = lm[0];
+        const tips = [8, 12, 16, 20], mcps = [5, 9, 13, 17];
+        let curled = 0;
+        for (let i = 0; i < 4; i++) {
+          const dTip = Math.hypot(lm[tips[i]].x - wrist.x, lm[tips[i]].y - wrist.y);
+          const dMcp = Math.hypot(lm[mcps[i]].x - wrist.x, lm[mcps[i]].y - wrist.y);
+          if (dTip < dMcp * 1.28) curled++;
+        }
+        const thumbIndex = Math.hypot(lm[4].x - lm[8].x, lm[4].y - lm[8].y);
+        const pts = [0, 5, 9, 13, 17];
+        let sx = 0, sy = 0;
+        pts.forEach((i) => { sx += lm[i].x; sy += lm[i].y; });
+        const next = { x: (1 - sx / pts.length) * width, y: sy / pts.length * height };
+        const prev = { ...stage1.hand.point };
+        stage1.hand.visible = true;
+        stage1.hand.fist = curled >= 2 || (curled >= 1 && thumbIndex < 0.16);
+        stage1.hand.point = { x: prev.x + (next.x - prev.x) * 0.4, y: prev.y + (next.y - prev.y) * 0.4 };
+        stage1.hand.velocity = { x: stage1.hand.point.x - prev.x, y: stage1.hand.point.y - prev.y };
+      } else if (activeStage === 1) {
+        if (!results.multiHandLandmarks || !results.multiHandLandmarks.length) {
+          if (stage2.hold.item) stage2.releaseHold(performance.now());
+          stage2.pinch.visible = false;
+          stage2.pinch.active = false;
+          stage2.pinch.mode = "single";
+          stage2.pinch.closed = false;
+          return;
+        }
+        const lm = results.multiHandLandmarks[0];
+        const thumb = getScreenPoint(lm, 4);
+        const index = getScreenPoint(lm, 8);
+        const prev = { ...stage2.pinch.point };
+        const center = { x: (thumb.x + index.x) * 0.5, y: (thumb.y + index.y) * 0.5 };
+        const wrist = lm[0], indexMcp = lm[5];
+        const handScale = Math.hypot(indexMcp.x - wrist.x, indexMcp.y - wrist.y) || 0.08;
+        const thumbIndex = Math.hypot(lm[4].x - lm[8].x, lm[4].y - lm[8].y);
+        stage2.pinch.visible = true;
+        stage2.pinch.active = true;
+        stage2.pinch.mode = "single";
+        stage2.pinch.closed = thumbIndex < handScale * 0.7;
+        stage2.pinch.strength = clamp(1 - thumbIndex / (handScale * 1.45), 0, 1);
+        stage2.pinch.point = { x: prev.x + (center.x - prev.x) * 0.5, y: prev.y + (center.y - prev.y) * 0.5 };
+        stage2.pinch.velocity = { x: stage2.pinch.point.x - prev.x, y: stage2.pinch.point.y - prev.y };
+      } else if (activeStage === 2) {
+        const now = performance.now();
+        const seen = new Set();
+        if (!results.multiHandLandmarks || !results.multiHandLandmarks.length) {
+          stage3.fingertips.forEach((s) => { s.visible = false; s.history.length = 0; });
+          return;
+        }
+        const tipIndices = [4, 8, 12, 16, 20];
+        results.multiHandLandmarks.forEach((lm, handIdx) => {
+          tipIndices.forEach((fingerIdx) => {
+            const key = `${handIdx}-${fingerIdx}`;
+            if (!stage3.fingertips.has(key)) {
+              stage3.fingertips.set(key, { visible: true, point: getScreenPoint(lm, fingerIdx), velocity: { x: 0, y: 0 }, history: [], cooldownUntil: 0, flash: 0 });
+            }
+            const state = stage3.fingertips.get(key);
+            const point = getScreenPoint(lm, fingerIdx);
+            const prev = { ...state.point };
+            state.visible = true;
+            state.point = { x: prev.x + (point.x - prev.x) * 0.7, y: prev.y + (point.y - prev.y) * 0.7 };
+            state.velocity = { x: state.point.x - prev.x, y: state.point.y - prev.y };
+            state.history.push({ x: state.point.x, y: state.point.y, vx: state.velocity.x, vy: state.velocity.y, t: now });
+            if (state.history.length > 8) state.history.shift();
+            seen.add(key);
+            if (stage3.detectTap(state, now)) {
+              stage3.spawn(state.point.x, state.point.y);
+              state.flash = 1;
+            }
+          });
+        });
+        stage3.fingertips.forEach((s, key) => { if (!seen.has(key)) { s.visible = false; s.history.length = 0; } });
+      }
+    });
+
+    const faceMesh = new FaceMesh({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}` });
+    faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.7, minTrackingConfidence: 0.6 });
+    faceMesh.onResults((results) => {
+      if (activeStage !== 3) return;
+      const now = performance.now();
+      if (!results.multiFaceLandmarks || !results.multiFaceLandmarks.length) {
+        stage4.blink.visible = false;
+        return;
+      }
+      const lm = results.multiFaceLandmarks[0];
+      const eyeRatio = ([outer, upper, lower, inner]) => {
+        const a = lm[outer], b = lm[upper], c = lm[lower], d = lm[inner];
+        const horiz = Math.hypot(a.x - d.x, a.y - d.y) || 0.001;
+        const vert = Math.hypot(b.x - c.x, b.y - c.y);
+        return vert / horiz;
+      };
+      const left = eyeRatio([33, 159, 145, 133]);
+      const right = eyeRatio([362, 386, 374, 263]);
+      const ear = (left + right) * 0.5;
+      stage4.blink.visible = true;
+      const faceRef = lm[1], leftEyeRef = lm[33], rightEyeRef = lm[263];
+      stage4.blink.faceCenter = { x: (1 - faceRef.x) * width, y: faceRef.y * height };
+      stage4.blink.leftEyeCenter = { x: (1 - leftEyeRef.x) * width, y: leftEyeRef.y * height };
+      stage4.blink.rightEyeCenter = { x: (1 - rightEyeRef.x) * width, y: rightEyeRef.y * height };
+      if (ear < 0.12 && now > stage4.blink.blinkCooldownUntil) {
+        stage4.blink.blinkCooldownUntil = now + 500;
+        stage4.burst(stage4.nearest(stage4.blink.faceCenter).id);
+        const amount = 1000 + Math.floor(Math.random() * 5) * 1000;
+        stage4.activity += amount;
+        stage4.topBursts.push({
+          x: stage4.blink.faceCenter.x + (Math.random() - 0.5) * 40,
+          y: stage4.blink.faceCenter.y - 20,
+          speed: 3.2 + Math.random() * 1.4,
+          alpha: 1,
+          label: `+${amount}`
+        });
+        updateHud();
+      }
+    });
+
+    async function setupCamera() {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: "user" }, audio: false });
+      video.srcObject = stream;
+      await video.play();
+      videoReady = true;
+    }
+
+    async function runVision(ts) {
+      if (!videoReady || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
+      if (ts - lastVisionTs < 66) return;
+      lastVisionTs = ts;
+      if (activeStage === 3) {
+        if (faceBusy) return;
+        faceBusy = true;
+        try { await faceMesh.send({ image: video }); } finally { faceBusy = false; }
+      } else {
+        if (handsBusy) return;
+        handsBusy = true;
+        try { await hands.send({ image: video }); } finally { handsBusy = false; }
+      }
+    }
+
+    function drawStage(ts) {
+      sceneCtx.clearRect(0, 0, width, height);
+      if (activeStage === 0) stage1.draw(sceneCtx);
+      if (activeStage === 1) stage2.draw(sceneCtx);
+      if (activeStage === 2) stage3.draw(sceneCtx);
+      if (activeStage === 3) stage4.draw(sceneCtx);
+    }
+
+    function tick(ts) {
+      const dt = Math.min(33, ts - (tick.last || ts));
+      tick.last = ts;
+      drawWebcam();
+      if (activeStage === 0) stage1.update(dt);
+      if (activeStage === 1) stage2.update();
+      if (activeStage === 2) stage3.update();
+      if (activeStage === 3) stage4.update(ts);
+      drawStage(ts);
+      animateHudCounter();
+      runVision(ts);
+      requestAnimationFrame(tick);
+    }
+
+    resize();
+    activateStage(0);
+    window.addEventListener("resize", resize);
+
+    setupCamera()
+      .catch(() => {});
+
+    requestAnimationFrame(tick);
+  </script>
+</body>
+</html>
