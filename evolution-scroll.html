@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>화폐 진화 스크롤</title>
+  <style>
+    :root {
+      --bg: #040404;
+      --panel: rgba(10, 10, 12, 0.72);
+      --line: rgba(255, 255, 255, 0.08);
+      --text: rgba(240, 236, 226, 0.94);
+      --muted: rgba(240, 236, 226, 0.54);
+      --accent: rgba(255, 222, 154, 0.9);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    }
+
+    body {
+      background:
+        radial-gradient(circle at 18% 20%, rgba(255, 228, 165, 0.05), transparent 24%),
+        radial-gradient(circle at 84% 18%, rgba(129, 213, 255, 0.06), transparent 26%),
+        linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.14)),
+        #040404;
+    }
+
+    #viewport {
+      width: 100%;
+      height: 100%;
+      overflow-y: auto;
+      scroll-snap-type: y mandatory;
+      scroll-behavior: smooth;
+    }
+
+    .stage {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+      scroll-snap-align: start;
+      overflow: hidden;
+      background: #040404;
+    }
+
+    .stage iframe {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: #040404;
+    }
+
+    .overlay {
+      position: absolute;
+      top: 18px;
+      left: 18px;
+      z-index: 3;
+      padding: 14px 16px 15px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      backdrop-filter: blur(14px);
+      max-width: min(340px, calc(100vw - 36px));
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .title {
+      font-size: 22px;
+      font-weight: 700;
+      line-height: 1.15;
+      margin-bottom: 6px;
+    }
+
+    .desc {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    #dock {
+      position: fixed;
+      right: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 5;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 12px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(10, 10, 12, 0.58);
+      backdrop-filter: blur(14px);
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 0;
+      background: rgba(255,255,255,0.24);
+      cursor: pointer;
+      transition: transform 160ms ease, background-color 160ms ease;
+    }
+
+    .dot.active {
+      background: var(--accent);
+      transform: scale(1.25);
+    }
+
+    #guide {
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      z-index: 5;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(10, 10, 12, 0.58);
+      backdrop-filter: blur(14px);
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      pointer-events: none;
+    }
+
+    @media (max-width: 720px) {
+      .overlay {
+        max-width: calc(100vw - 28px);
+        left: 14px;
+        top: 14px;
+      }
+
+      .title {
+        font-size: 19px;
+      }
+
+      #dock {
+        right: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="viewport">
+    <section class="stage" data-src="seashell-hand-matter.html" data-title="1. 조개 화폐" data-desc="주먹으로 모으고 끌어당기는 물질적 가치." data-label="Stage 1">
+      <iframe title="조개 화폐"></iframe>
+      <div class="overlay">
+        <span class="eyebrow">Stage 1</span>
+        <div class="title">조개 화폐</div>
+        <div class="desc">묵직한 물성과 손의 움직임이 직접 맞물리는 초기 교환의 감각.</div>
+      </div>
+    </section>
+
+    <section class="stage" data-src="money-pinch-counting.html" data-title="2. 표준화된 화폐" data-desc="집고, 옮기고, 세는 규격화된 가치." data-label="Stage 2">
+      <iframe title="표준화된 화폐"></iframe>
+      <div class="overlay">
+        <span class="eyebrow">Stage 2</span>
+        <div class="title">표준화된 화폐</div>
+        <div class="desc">손끝으로 집어 Counting Zone에 옮기며 수량과 금액을 명확히 세는 단계.</div>
+      </div>
+    </section>
+
+    <section class="stage" data-src="digital-transfer.html" data-title="3. 디지털 송금" data-desc="값이 숫자로 분해되어 기록되고 전송되는 단계." data-label="Stage 3">
+      <iframe title="디지털 송금"></iframe>
+      <div class="overlay">
+        <span class="eyebrow">Stage 3</span>
+        <div class="title">디지털 송금</div>
+        <div class="desc">터치 대신 탭으로 값이 생성되고, 송금 완료 구역으로 흐르는 비물질적 인터랙션.</div>
+      </div>
+    </section>
+
+    <section class="stage" data-src="virtual-asset-network.html" data-title="4. 가상자산" data-desc="깜빡임이 신호와 숫자를 네트워크 전체로 확산시키는 단계." data-label="Stage 4">
+      <iframe title="가상자산"></iframe>
+      <div class="overlay">
+        <span class="eyebrow">Stage 4</span>
+        <div class="title">가상자산</div>
+        <div class="desc">물질 없는 값이 네트워크 망과 눈의 인지 반응 속에서 활성화되는 화면.</div>
+      </div>
+    </section>
+  </div>
+
+  <div id="dock" aria-label="Stage navigation"></div>
+  <div id="guide">스크롤하면 다음 단계로 넘어갑니다. 현재 화면만 카메라를 사용합니다.</div>
+
+  <script>
+    const viewport = document.getElementById("viewport");
+    const stages = [...document.querySelectorAll(".stage")];
+    const dock = document.getElementById("dock");
+
+    let activeIndex = -1;
+
+    stages.forEach((stage, index) => {
+      const dot = document.createElement("button");
+      dot.className = "dot";
+      dot.type = "button";
+      dot.title = stage.dataset.title;
+      dot.addEventListener("click", () => {
+        stage.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+      dock.appendChild(dot);
+      stage._dot = dot;
+    });
+
+    function activateStage(index) {
+      if (index === activeIndex) return;
+      activeIndex = index;
+
+      stages.forEach((stage, stageIndex) => {
+        const iframe = stage.querySelector("iframe");
+        const src = stage.dataset.src;
+        const shouldLoad = stageIndex === index;
+
+        stage._dot.classList.toggle("active", shouldLoad);
+
+        if (shouldLoad) {
+          if (iframe.dataset.loaded !== "true") {
+            iframe.src = src;
+            iframe.dataset.loaded = "true";
+          } else if (iframe.src && !iframe.src.endsWith(src)) {
+            iframe.src = src;
+          }
+        } else {
+          if (iframe.dataset.loaded === "true") {
+            iframe.src = "about:blank";
+            iframe.dataset.loaded = "false";
+          }
+        }
+      });
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      let topEntry = null;
+      for (const entry of entries) {
+        if (!topEntry || entry.intersectionRatio > topEntry.intersectionRatio) {
+          topEntry = entry;
+        }
+      }
+      if (!topEntry || topEntry.intersectionRatio < 0.55) return;
+      const index = stages.indexOf(topEntry.target);
+      if (index >= 0) activateStage(index);
+    }, {
+      root: viewport,
+      threshold: [0.25, 0.55, 0.75]
+    });
+
+    stages.forEach((stage) => observer.observe(stage));
+    activateStage(0);
+  </script>
+</body>
+</html>

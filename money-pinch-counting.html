@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>화폐 집기 카운팅 인터랙션</title>
+  <style>
+    :root {
+      --bg: #060606;
+      --text: rgba(235, 230, 214, 0.92);
+      --muted: rgba(235, 230, 214, 0.52);
+      --zone: rgba(106, 190, 132, 0.16);
+      --zone-line: rgba(136, 232, 168, 0.76);
+      --glow: rgba(255, 231, 166, 0.88);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      font-family: "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 18% 22%, rgba(255, 230, 170, 0.05), transparent 24%),
+        radial-gradient(circle at 82% 28%, rgba(88, 160, 112, 0.06), transparent 26%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.015), rgba(0, 0, 0, 0.12));
+      z-index: 0;
+    }
+
+    #video {
+      display: none;
+    }
+
+    canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    #webcam-layer {
+      z-index: 1;
+      opacity: 0.2;
+      filter: saturate(0.42) contrast(0.9) blur(0.8px);
+    }
+
+    #scene-layer {
+      z-index: 2;
+    }
+
+    #hud {
+      position: fixed;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+    }
+
+    #status,
+    #hint,
+    #count-panel,
+    #picked-panel {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      text-shadow: 0 0 18px rgba(0, 0, 0, 0.5);
+    }
+
+    #status {
+      top: 16px;
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      color: var(--text);
+    }
+
+    #hint {
+      bottom: 18px;
+      font-size: 13px;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+    }
+
+    #count-panel {
+      top: 54px;
+      padding: 10px 18px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      background: rgba(15, 18, 16, 0.54);
+      backdrop-filter: blur(10px);
+      color: var(--text);
+      min-width: 164px;
+    }
+
+    #picked-panel {
+      top: 54px;
+      left: auto;
+      right: 22px;
+      transform: none;
+      padding: 10px 16px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      background: rgba(18, 18, 20, 0.5);
+      backdrop-filter: blur(10px);
+      min-width: 128px;
+      text-align: right;
+    }
+
+    #count-label {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+
+    #count-value {
+      font-size: 32px;
+      font-weight: 700;
+      line-height: 1;
+      color: rgba(255, 245, 214, 0.96);
+    }
+
+    #picked-label {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+
+    #picked-value {
+      font-size: 26px;
+      font-weight: 700;
+      line-height: 1;
+      color: rgba(255, 239, 188, 0.96);
+    }
+  </style>
+</head>
+<body>
+  <video id="video" playsinline autoplay muted></video>
+  <canvas id="webcam-layer"></canvas>
+  <canvas id="scene-layer"></canvas>
+  <div id="hud">
+    <div id="status">카메라를 초기화하는 중...</div>
+    <div id="count-panel">
+      <span id="count-label">Counting Zone</span>
+      <span id="count-value">0</span>
+    </div>
+    <div id="picked-panel">
+      <span id="picked-label">Picked</span>
+      <span id="picked-value">-</span>
+    </div>
+    <div id="hint">엄지+검지 또는 엄지+검지+중지로 화폐를 집어 올리면 금액이 표시됩니다.</div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+  <script>
+    const video = document.getElementById("video");
+    const webcamCanvas = document.getElementById("webcam-layer");
+    const sceneCanvas = document.getElementById("scene-layer");
+    const webcamCtx = webcamCanvas.getContext("2d");
+    const sceneCtx = sceneCanvas.getContext("2d");
+    const statusEl = document.getElementById("status");
+    const countValueEl = document.getElementById("count-value");
+    const pickedValueEl = document.getElementById("picked-value");
+
+    const { Engine, World, Bodies, Body } = Matter;
+
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    let countZone = null;
+    let countedTotal = 0;
+    let pulseStrength = 0;
+
+    const engine = Engine.create({
+      gravity: { x: 0, y: 0.3 },
+      positionIterations: 10,
+      velocityIterations: 8
+    });
+    const world = engine.world;
+
+    const walls = [];
+    const notes = [];
+    const sprites = [];
+
+    const NOTE_COUNT = 15;
+    const PICK_RADIUS = 80;
+    const FOLLOW_STIFFNESS = 0.0135;
+    const MAX_FOLLOW_FORCE = 0.14;
+
+    const pinch = {
+      visible: false,
+      active: false,
+      mode: null,
+      point: { x: width * 0.5, y: height * 0.5 },
+      velocity: { x: 0, y: 0 }
+    };
+
+    const dragState = {
+      body: null,
+      offset: { x: 0, y: 0 }
+    };
+
+    function createMoneySvg(label, base, accent, detail) {
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 200">
+          <defs>
+            <linearGradient id="bill" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="${base}"/>
+              <stop offset="100%" stop-color="${accent}"/>
+            </linearGradient>
+          </defs>
+          <rect x="10" y="10" width="340" height="180" rx="18" fill="url(#bill)" stroke="${detail}" stroke-width="8"/>
+          <rect x="34" y="30" width="292" height="140" rx="12" fill="none" stroke="${detail}" stroke-width="4" opacity="0.75"/>
+          <circle cx="92" cy="100" r="32" fill="none" stroke="${detail}" stroke-width="6" opacity="0.75"/>
+          <circle cx="268" cy="100" r="32" fill="none" stroke="${detail}" stroke-width="6" opacity="0.75"/>
+          <text x="180" y="115" text-anchor="middle" font-family="Arial, sans-serif" font-size="60" fill="${detail}" opacity="0.92">${label}</text>
+          <text x="180" y="62" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" fill="${detail}" opacity="0.82">STANDARD CURRENCY</text>
+          <text x="180" y="158" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="${detail}" opacity="0.7">TEMP NOTE</text>
+        </svg>
+      `.trim();
+      return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+    }
+
+    function createCoinSvg(label, outer, inner, detail) {
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 220">
+          <circle cx="110" cy="110" r="98" fill="${outer}" stroke="${detail}" stroke-width="10"/>
+          <circle cx="110" cy="110" r="72" fill="${inner}" stroke="${detail}" stroke-width="5" opacity="0.92"/>
+          <circle cx="110" cy="110" r="54" fill="none" stroke="${detail}" stroke-width="3" opacity="0.55"/>
+          <text x="110" y="124" text-anchor="middle" font-family="Arial, sans-serif" font-size="54" fill="${detail}">${label}</text>
+        </svg>
+      `.trim();
+      return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+    }
+
+    function loadImage(src) {
+      const img = new Image();
+      img.src = src;
+      return img;
+    }
+
+    function buildWalls() {
+      if (walls.length) World.remove(world, walls);
+      walls.length = 0;
+      const t = 120;
+      walls.push(
+        Bodies.rectangle(width / 2, -t / 2, width + t * 2, t, { isStatic: true }),
+        Bodies.rectangle(width / 2, height + t / 2, width + t * 2, t, { isStatic: true }),
+        Bodies.rectangle(-t / 2, height / 2, t, height + t * 2, { isStatic: true }),
+        Bodies.rectangle(width + t / 2, height / 2, t, height + t * 2, { isStatic: true })
+      );
+      World.add(world, walls);
+    }
+
+    function setupCountZone() {
+      countZone = {
+        x: width - Math.max(220, width * 0.22),
+        y: Math.max(60, height * 0.16),
+        w: Math.max(180, width * 0.16),
+        h: Math.max(220, height * 0.68)
+      };
+    }
+
+    function createMoneyBodies() {
+      const assets = [
+        { img: loadImage(createMoneySvg("10", "#6ba17e", "#8ec3a0", "#173d28")), type: "note", w: 236, h: 132, value: "10원" },
+        { img: loadImage(createMoneySvg("50", "#91785b", "#ceb189", "#302113")), type: "note", w: 236, h: 132, value: "50원" },
+        { img: loadImage(createMoneySvg("100", "#6a86a8", "#98b8dd", "#17283b")), type: "note", w: 236, h: 132, value: "100원" },
+        { img: loadImage(createCoinSvg("1", "#c6b37e", "#efe0b4", "#5b4724")), type: "coin", w: 144, h: 144, value: "1원" },
+        { img: loadImage(createCoinSvg("5", "#b4bac2", "#e5e9ef", "#4a525c")), type: "coin", w: 144, h: 144, value: "5원" }
+      ];
+
+      for (let i = 0; i < NOTE_COUNT; i++) {
+        const asset = assets[i % assets.length];
+        const col = i % 5;
+        const row = Math.floor(i / 5);
+        const x = 170 + col * 210 + (Math.random() - 0.5) * 26;
+        const y = height - 170 - row * 148 + (Math.random() - 0.5) * 18;
+        const body = asset.type === "coin"
+          ? Bodies.circle(x, y, asset.w / 2, {
+              friction: 0.28,
+              frictionAir: 0.028,
+              restitution: 0.06,
+              density: 0.0012,
+              sleepThreshold: 18
+            })
+          : Bodies.rectangle(x, y, asset.w, asset.h, {
+              friction: 0.34,
+              frictionAir: 0.03,
+              restitution: 0.04,
+              density: 0.001,
+              sleepThreshold: 18,
+              chamfer: { radius: 12 }
+            });
+
+        body.plugin = {
+          kind: asset.type,
+          value: asset.value,
+          w: asset.w,
+          h: asset.h,
+          counted: false,
+          home: { x, y },
+          tint: i % 2 === 0 ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0)"
+        };
+
+        Body.setAngle(body, (Math.random() - 0.5) * 0.05);
+        notes.push(body);
+        sprites.push(asset.img);
+      }
+
+      World.add(world, notes);
+    }
+
+    function resize() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      webcamCanvas.width = sceneCanvas.width = width;
+      webcamCanvas.height = sceneCanvas.height = height;
+      buildWalls();
+      setupCountZone();
+    }
+
+    function drawWebcam() {
+      webcamCtx.clearRect(0, 0, width, height);
+      if (video.readyState < HTMLMediaElement.HAVE_ENOUGH_DATA) return;
+      webcamCtx.save();
+      webcamCtx.scale(-1, 1);
+      webcamCtx.drawImage(video, -width, 0, width, height);
+      webcamCtx.restore();
+    }
+
+    function drawCountZone() {
+      pulseStrength *= 0.92;
+      sceneCtx.save();
+      sceneCtx.fillStyle = "rgba(0, 0, 0, 0.18)";
+      sceneCtx.fillRect(countZone.x, countZone.y, countZone.w, countZone.h);
+
+      const g = sceneCtx.createLinearGradient(countZone.x, countZone.y, countZone.x + countZone.w, countZone.y + countZone.h);
+      g.addColorStop(0, "rgba(111, 208, 145, 0.12)");
+      g.addColorStop(1, "rgba(111, 208, 145, 0.03)");
+      sceneCtx.fillStyle = g;
+      sceneCtx.fillRect(countZone.x, countZone.y, countZone.w, countZone.h);
+
+      sceneCtx.strokeStyle = `rgba(144, 240, 176, ${0.5 + pulseStrength * 0.4})`;
+      sceneCtx.lineWidth = 2 + pulseStrength * 8;
+      sceneCtx.setLineDash([10, 8]);
+      sceneCtx.strokeRect(countZone.x, countZone.y, countZone.w, countZone.h);
+      sceneCtx.setLineDash([]);
+
+      sceneCtx.fillStyle = "rgba(236, 244, 235, 0.82)";
+      sceneCtx.font = "600 15px Apple SD Gothic Neo, Noto Sans KR, sans-serif";
+      sceneCtx.fillText("COUNTING ZONE", countZone.x + 18, countZone.y + 28);
+      sceneCtx.font = "400 12px Apple SD Gothic Neo, Noto Sans KR, sans-serif";
+      sceneCtx.fillStyle = "rgba(236, 244, 235, 0.56)";
+      sceneCtx.fillText("집은 화폐를 이 영역으로 통과시키세요", countZone.x + 18, countZone.y + 48);
+      sceneCtx.restore();
+    }
+
+    function drawMoney() {
+      notes.forEach((body, index) => {
+        const sprite = sprites[index];
+        const { kind, w, h, tint } = body.plugin;
+        sceneCtx.save();
+        sceneCtx.translate(body.position.x, body.position.y);
+        sceneCtx.rotate(body.angle);
+        sceneCtx.globalAlpha = body.plugin.counted ? 0.65 : 0.98;
+        if (kind === "coin") {
+          sceneCtx.drawImage(sprite, -w / 2, -h / 2, w, h);
+        } else {
+          sceneCtx.drawImage(sprite, -w / 2, -h / 2, w, h);
+          sceneCtx.fillStyle = tint;
+          sceneCtx.fillRect(-w / 2, -h / 2, w, h);
+        }
+        sceneCtx.restore();
+      });
+    }
+
+    function drawPinchCursor() {
+      if (!pinch.visible) return;
+      sceneCtx.save();
+      sceneCtx.translate(pinch.point.x, pinch.point.y);
+      if (pinch.active) {
+        sceneCtx.fillStyle = "rgba(255, 230, 173, 0.18)";
+        sceneCtx.beginPath();
+        sceneCtx.arc(0, 0, PICK_RADIUS, 0, Math.PI * 2);
+        sceneCtx.fill();
+        sceneCtx.strokeStyle = "rgba(255, 230, 173, 0.68)";
+        sceneCtx.lineWidth = 2.4;
+        sceneCtx.beginPath();
+        sceneCtx.arc(0, 0, 24, 0, Math.PI * 2);
+        sceneCtx.stroke();
+        sceneCtx.fillStyle = "rgba(255, 232, 182, 0.96)";
+        sceneCtx.beginPath();
+        sceneCtx.arc(0, 0, 7, 0, Math.PI * 2);
+        sceneCtx.fill();
+      } else {
+        sceneCtx.strokeStyle = "rgba(255,255,255,0.34)";
+        sceneCtx.lineWidth = 1.5;
+        sceneCtx.setLineDash([4, 6]);
+        sceneCtx.beginPath();
+        sceneCtx.arc(0, 0, 18, 0, Math.PI * 2);
+        sceneCtx.stroke();
+        sceneCtx.setLineDash([]);
+      }
+      sceneCtx.restore();
+    }
+
+    function render() {
+      sceneCtx.clearRect(0, 0, width, height);
+      drawCountZone();
+      drawMoney();
+      drawPinchCursor();
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function getFingerScreenPoint(landmarks, index) {
+      return {
+        x: (1 - landmarks[index].x) * width,
+        y: landmarks[index].y * height
+      };
+    }
+
+    function midpoint(a, b, c) {
+      return {
+        x: (a.x + b.x + c.x) / 3,
+        y: (a.y + b.y + c.y) / 3
+      };
+    }
+
+    function getPinchState(landmarks) {
+      const thumb = landmarks[4];
+      const index = landmarks[8];
+      const middle = landmarks[12];
+      const indexMcp = landmarks[5];
+      const middleMcp = landmarks[9];
+
+      const thumbIndex = Math.hypot(thumb.x - index.x, thumb.y - index.y);
+      const thumbMiddle = Math.hypot(thumb.x - middle.x, thumb.y - middle.y);
+      const indexMiddle = Math.hypot(index.x - middle.x, index.y - middle.y);
+      const handScale = Math.hypot(indexMcp.x - middleMcp.x, indexMcp.y - middleMcp.y) || 0.06;
+
+      const twoFinger = thumbIndex < handScale * 1.55 && thumbMiddle > handScale * 1.35;
+      const threeFinger = thumbIndex < handScale * 1.85
+        && thumbMiddle < handScale * 2.15
+        && indexMiddle < handScale * 1.7;
+
+      if (threeFinger) return "three";
+      if (twoFinger) return "two";
+      return null;
+    }
+
+    function pickNearestBody(point) {
+      let best = null;
+      let bestDist = PICK_RADIUS;
+      notes.forEach((body) => {
+        if (body.plugin.counted) return;
+        const d = Math.hypot(body.position.x - point.x, body.position.y - point.y);
+        if (d < bestDist) {
+          best = body;
+          bestDist = d;
+        }
+      });
+      return best;
+    }
+
+    function updateDragBody() {
+      if (!pinch.active) {
+        dragState.body = null;
+        pickedValueEl.textContent = "-";
+        return;
+      }
+
+      if (!dragState.body) {
+        const candidate = pickNearestBody(pinch.point);
+        if (candidate) {
+          dragState.body = candidate;
+          dragState.offset = {
+            x: candidate.position.x - pinch.point.x,
+            y: candidate.position.y - pinch.point.y
+          };
+        }
+      }
+
+      if (!dragState.body) return;
+      pickedValueEl.textContent = dragState.body.plugin.value;
+      const target = {
+        x: pinch.point.x + dragState.offset.x,
+        y: pinch.point.y + dragState.offset.y
+      };
+      const dx = target.x - dragState.body.position.x;
+      const dy = target.y - dragState.body.position.y;
+      let fx = dx * FOLLOW_STIFFNESS * dragState.body.mass + pinch.velocity.x * 0.00075;
+      let fy = dy * FOLLOW_STIFFNESS * dragState.body.mass + pinch.velocity.y * 0.00075;
+      const forceMag = Math.hypot(fx, fy);
+      if (forceMag > MAX_FOLLOW_FORCE) {
+        fx = fx / forceMag * MAX_FOLLOW_FORCE;
+        fy = fy / forceMag * MAX_FOLLOW_FORCE;
+      }
+      Body.applyForce(dragState.body, dragState.body.position, { x: fx, y: fy });
+      Body.setAngularVelocity(dragState.body, dragState.body.angularVelocity * 0.5);
+    }
+
+    function splitAndCount(body) {
+      body.plugin.counted = true;
+      countedTotal += 1;
+      countValueEl.textContent = countedTotal;
+      pulseStrength = 1;
+
+      const isCoin = body.plugin.kind === "coin";
+      const spawnA = isCoin
+        ? Bodies.circle(countZone.x + countZone.w * 0.34, countZone.y + 54 + Math.random() * (countZone.h - 108), body.plugin.w * 0.24, {
+            friction: 0.04,
+            frictionAir: 0.018,
+            restitution: 0.4,
+            density: 0.00045
+          })
+        : Bodies.rectangle(countZone.x + countZone.w * 0.36, countZone.y + 58 + Math.random() * (countZone.h - 116), body.plugin.w * 0.58, body.plugin.h * 0.58, {
+            friction: 0.05,
+            frictionAir: 0.018,
+            restitution: 0.24,
+            density: 0.00042,
+            chamfer: { radius: 8 }
+          });
+      const spawnB = isCoin
+        ? Bodies.circle(countZone.x + countZone.w * 0.66, countZone.y + 54 + Math.random() * (countZone.h - 108), body.plugin.w * 0.24, {
+            friction: 0.04,
+            frictionAir: 0.018,
+            restitution: 0.4,
+            density: 0.00045
+          })
+        : Bodies.rectangle(countZone.x + countZone.w * 0.64, countZone.y + 58 + Math.random() * (countZone.h - 116), body.plugin.w * 0.58, body.plugin.h * 0.58, {
+            friction: 0.05,
+            frictionAir: 0.018,
+            restitution: 0.24,
+            density: 0.00042,
+            chamfer: { radius: 8 }
+          });
+
+      spawnA.plugin = { ...body.plugin, counted: true, w: body.plugin.w * 0.58, h: body.plugin.h * 0.58 };
+      spawnB.plugin = { ...body.plugin, counted: true, w: body.plugin.w * 0.58, h: body.plugin.h * 0.58 };
+
+      const index = notes.indexOf(body);
+      const sprite = sprites[index];
+      notes.push(spawnA, spawnB);
+      sprites.push(sprite, sprite);
+      World.add(world, [spawnA, spawnB]);
+
+      Body.setVelocity(spawnA, { x: -0.18 - Math.random() * 0.12, y: -0.08 });
+      Body.setVelocity(spawnB, { x: 0.18 + Math.random() * 0.12, y: -0.08 });
+      Body.setVelocity(body, { x: 0, y: 0 });
+      Body.setPosition(body, {
+        x: countZone.x + countZone.w * 0.5,
+        y: countZone.y + countZone.h * 0.5
+      });
+
+      if (dragState.body === body) {
+        dragState.body = null;
+      }
+    }
+
+    function updateCounting() {
+      notes.forEach((body) => {
+        if (body.plugin.counted) return;
+        const inside =
+          body.position.x > countZone.x &&
+          body.position.x < countZone.x + countZone.w &&
+          body.position.y > countZone.y &&
+          body.position.y < countZone.y + countZone.h;
+        if (inside) splitAndCount(body);
+      });
+    }
+
+    function onResults(results) {
+      if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
+        pinch.visible = false;
+        pinch.active = false;
+        pinch.mode = null;
+        dragState.body = null;
+        pickedValueEl.textContent = "-";
+        statusEl.textContent = "손을 화면 안으로 가져와 주세요.";
+        return;
+      }
+
+      const landmarks = results.multiHandLandmarks[0];
+      const thumb = getFingerScreenPoint(landmarks, 4);
+      const index = getFingerScreenPoint(landmarks, 8);
+      const middle = getFingerScreenPoint(landmarks, 12);
+      const center = midpoint(thumb, index, middle);
+      const previous = { ...pinch.point };
+      const pinchMode = getPinchState(landmarks);
+
+      pinch.visible = true;
+      pinch.active = Boolean(pinchMode);
+      pinch.mode = pinchMode;
+      pinch.point = {
+        x: previous.x + (center.x - previous.x) * 0.42,
+        y: previous.y + (center.y - previous.y) * 0.42
+      };
+      pinch.velocity = {
+        x: pinch.point.x - previous.x,
+        y: pinch.point.y - previous.y
+      };
+
+      if (pinch.active) {
+        statusEl.textContent = pinch.mode === "two"
+          ? "두 손가락 집기 인식됨: 화폐를 집어 올리면 금액이 표시됩니다."
+          : "세 손가락 집기 인식됨: 화폐를 집어 올리면 금액이 표시됩니다.";
+      } else {
+        pickedValueEl.textContent = "-";
+        statusEl.textContent = "엄지+검지 또는 엄지+검지+중지로 집기 제스처를 만들어 주세요.";
+      }
+    }
+
+    const hands = new Hands({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+    });
+    hands.setOptions({
+      maxNumHands: 1,
+      modelComplexity: 1,
+      minDetectionConfidence: 0.72,
+      minTrackingConfidence: 0.6
+    });
+    hands.onResults(onResults);
+
+    const camera = new Camera(video, {
+      onFrame: async () => {
+        await hands.send({ image: video });
+      },
+      width: 640,
+      height: 480
+    });
+
+    function tick(ts) {
+      if (!tick.last) tick.last = ts;
+      const delta = Math.min(33, ts - tick.last);
+      tick.last = ts;
+      updateDragBody();
+      Engine.update(engine, delta);
+      updateCounting();
+      drawWebcam();
+      render();
+      requestAnimationFrame(tick);
+    }
+
+    resize();
+    createMoneyBodies();
+    window.addEventListener("resize", resize);
+
+    Promise.resolve(camera.start())
+      .then(() => {
+        statusEl.textContent = "바닥에 놓인 화폐를 두 손가락 또는 세 손가락으로 집어보세요.";
+      })
+      .catch((error) => {
+        statusEl.textContent = `카메라 접근 오류: ${error.message}`;
+      });
+
+    requestAnimationFrame(tick);
+  </script>
+</body>
+</html>

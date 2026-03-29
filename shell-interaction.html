@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>조개껍질 인터랙션</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #080808;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      font-family: system-ui, sans-serif;
+    }
+
+    #video { display: none; }
+
+    canvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+    }
+
+    #wc-canvas  { opacity: 0.2; z-index: 1; }
+    #ph-canvas  { z-index: 2; }
+
+    #status {
+      position: fixed;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+      color: rgba(255, 220, 150, 0.55);
+      font-size: 12px;
+      letter-spacing: .04em;
+      pointer-events: none;
+    }
+
+    #hint {
+      position: fixed;
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+      color: rgba(255, 220, 150, 0.40);
+      font-size: 13px;
+      letter-spacing: .05em;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <video id="video" playsinline autoplay muted></video>
+  <canvas id="wc-canvas"></canvas>
+  <canvas id="ph-canvas"></canvas>
+  <div id="status">카메라 초기화 중…</div>
+  <div id="hint">✊ 주먹을 쥐고 움직여 조개를 끌어당기세요</div>
+
+  <!-- Matter.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+  <!-- MediaPipe Hands -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+  <script>
+  /* ═══════════════════════════════════════════════════════════════
+     1. 캔버스 & 상태
+  ═══════════════════════════════════════════════════════════════ */
+  const video    = document.getElementById('video');
+  const wcCanvas = document.getElementById('wc-canvas');
+  const phCanvas = document.getElementById('ph-canvas');
+  const wcCtx    = wcCanvas.getContext('2d');
+  const phCtx    = phCanvas.getContext('2d');
+  const statusEl = document.getElementById('status');
+
+  let W = window.innerWidth;
+  let H = window.innerHeight;
+
+  function resizeAll() {
+    W = window.innerWidth;
+    H = window.innerHeight;
+    wcCanvas.width  = phCanvas.width  = W;
+    wcCanvas.height = phCanvas.height = H;
+    refreshWalls();
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     2. Matter.js — 엔진 & 세계
+  ═══════════════════════════════════════════════════════════════ */
+  const { Engine, Bodies, Body, World, Composite } = Matter;
+
+  const engine = Engine.create({
+    gravity: { x: 0, y: 0 },       // 중력 없음 — 테이블 위의 조개
+    positionIterations : 10,
+    velocityIterations : 8,
+  });
+  const world = engine.world;
+
+  /* 벽 */
+  let wallBodies = [];
+  function refreshWalls() {
+    if (wallBodies.length) World.remove(world, wallBodies);
+    const T = 80;
+    wallBodies = [
+      Bodies.rectangle(W/2, -T/2,   W + T*2, T,   { isStatic: true, friction: 0.4 }),
+      Bodies.rectangle(W/2, H + T/2, W + T*2, T,  { isStatic: true, friction: 0.4 }),
+      Bodies.rectangle(-T/2, H/2,   T, H + T*2,   { isStatic: true, friction: 0.4 }),
+      Bodies.rectangle(W + T/2, H/2, T, H + T*2,  { isStatic: true, friction: 0.4 }),
+    ];
+    World.add(world, wallBodies);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     3. 조개껍질 생성
+  ═══════════════════════════════════════════════════════════════ */
+  const NUM_SHELLS = 14;
+
+  // 색상 팔레트 — 카우리·가리비 계열 모래빛
+  const PALETTES = [
+    { base:'#d4a96a', rib:'#9a7038', dark:'#6e4c1e', rim:'#c49050', light:'#eac888' },
+    { base:'#ddd0a8', rib:'#b09268', dark:'#8a6a40', rim:'#cdb880', light:'#f0e4c0' },
+    { base:'#c8b090', rib:'#907060', dark:'#634a38', rim:'#b09070', light:'#e0cbb0' },
+    { base:'#bca888', rib:'#8c7050', dark:'#5e4630', rim:'#a89068', light:'#d8c8a8' },
+  ];
+
+  const shellBodies = [];
+  const shellMeta   = [];
+
+  for (let i = 0; i < NUM_SHELLS; i++) {
+    const size    = 48 + Math.random() * 58;      // 48–106 px 반지름
+    const x       = 100 + Math.random() * (window.innerWidth  - 200);
+    const y       = 100 + Math.random() * (window.innerHeight - 200);
+    const angle   = Math.random() * Math.PI * 2;
+    const palette = PALETTES[i % PALETTES.length];
+    const numRibs = 8 + Math.floor(Math.random() * 5);  // 8–12 리브
+
+    const body = Bodies.circle(x, y, size * 0.52, {
+      frictionAir : 0.055,    // 낮은 공기 저항 → 손 놓은 후 천천히 감속
+      friction    : 0.65,
+      restitution : 0.06,
+      mass        : 5 + size / 18,
+      angle,
+      label       : 'shell',
+    });
+
+    // 초기 미세 속도 — 화면에 퍼져 있도록
+    Body.setVelocity(body, {
+      x: (Math.random() - 0.5) * 0.5,
+      y: (Math.random() - 0.5) * 0.5,
+    });
+
+    shellBodies.push(body);
+    shellMeta.push({ size, palette, numRibs });
+  }
+
+  World.add(world, shellBodies);
+
+  /* ═══════════════════════════════════════════════════════════════
+     4. 조개 그리기
+        — 부채꼴 가리비 형태. 힌지(경첩)가 아래를 향하도록 -π/2 회전.
+  ═══════════════════════════════════════════════════════════════ */
+  function drawShell(ctx, x, y, r, angle, meta) {
+    const { palette, numRibs } = meta;
+    const SPREAD = Math.PI * 1.18;  // 부채 펼침 각
+    const sa = -SPREAD / 2;
+    const ea =  SPREAD / 2;
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle - Math.PI / 2);
+
+    /* ── 그림자 ── */
+    ctx.shadowColor   = 'rgba(0,0,0,0.65)';
+    ctx.shadowBlur    = 22;
+    ctx.shadowOffsetX = 5;
+    ctx.shadowOffsetY = 10;
+
+    /* ── 부채꼴 베이스 (방사형 그라디언트) ── */
+    const grd = ctx.createRadialGradient(0, 0, r * 0.04, 0, 0, r);
+    grd.addColorStop(0,    palette.light);
+    grd.addColorStop(0.45, palette.base);
+    grd.addColorStop(0.85, palette.base);
+    grd.addColorStop(1,    palette.dark);
+
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.arc(0, 0, r, sa, ea);
+    ctx.closePath();
+    ctx.fillStyle = grd;
+    ctx.fill();
+
+    ctx.shadowColor = 'transparent';  // 이후 선 그릴 때 그림자 제거
+
+    /* ── 방사형 리브 ── */
+    for (let i = 0; i <= numRibs; i++) {
+      const a = sa + (SPREAD / numRibs) * i;
+      ctx.beginPath();
+      ctx.moveTo(r * 0.06, 0);
+
+      // 리브를 살짝 곡선으로 — 자연스러운 느낌
+      const cx1 = Math.cos(a) * r * 0.45 + Math.cos(a - 0.12) * r * 0.1;
+      const cy1 = Math.sin(a) * r * 0.45 + Math.sin(a - 0.12) * r * 0.1;
+      ctx.quadraticCurveTo(cx1, cy1, Math.cos(a) * r, Math.sin(a) * r);
+      ctx.strokeStyle = palette.rib + 'bb';
+      ctx.lineWidth   = 1.1;
+      ctx.stroke();
+    }
+
+    /* ── 동심호 (성장선) ── */
+    const RINGS = [0.28, 0.50, 0.70, 0.87];
+    for (const frac of RINGS) {
+      ctx.beginPath();
+      ctx.arc(0, 0, r * frac, sa, ea);
+      ctx.strokeStyle = palette.rib + '77';
+      ctx.lineWidth   = 0.75;
+      ctx.stroke();
+    }
+
+    /* ── 테두리 ── */
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.arc(0, 0, r, sa, ea);
+    ctx.closePath();
+    ctx.strokeStyle = palette.rim;
+    ctx.lineWidth   = 2.2;
+    ctx.stroke();
+
+    /* ── 가장자리 하이라이트 (왼쪽 상단) ── */
+    ctx.beginPath();
+    ctx.arc(0, 0, r, sa, sa + SPREAD * 0.28);
+    ctx.strokeStyle = palette.light + '88';
+    ctx.lineWidth   = 1.8;
+    ctx.stroke();
+
+    /* ── 힌지 점 ── */
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.10, 0, Math.PI * 2);
+    ctx.fillStyle = palette.dark;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.045, 0, Math.PI * 2);
+    ctx.fillStyle = palette.rim;
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     5. 손 인식 상태
+  ═══════════════════════════════════════════════════════════════ */
+  let handVisible  = false;
+  let fistClosed   = false;
+  let handPos      = { x: 0, y: 0 };
+
+  /**
+   * 주먹 감지: 4개 손가락 끝이 손목보다 손가락 기저부(MCP)에 가까운지 확인
+   */
+  function detectFist(lm) {
+    const wrist = lm[0];
+    const tips  = [8, 12, 16, 20];
+    const mcps  = [5,  9, 13, 17];
+    let curled = 0;
+    for (let i = 0; i < 4; i++) {
+      const d_tip = Math.hypot(lm[tips[i]].x - wrist.x, lm[tips[i]].y - wrist.y);
+      const d_mcp = Math.hypot(lm[mcps[i]].x - wrist.x, lm[mcps[i]].y - wrist.y);
+      if (d_tip < d_mcp * 1.18) curled++;
+    }
+    return curled >= 3;
+  }
+
+  /** 손바닥 중심 (손목 + 4 MCP 평균) → 화면 좌표 (좌우 반전) */
+  function palmCenter(lm) {
+    const pts = [0, 5, 9, 13, 17];
+    let sx = 0, sy = 0;
+    for (const i of pts) { sx += lm[i].x; sy += lm[i].y; }
+    return {
+      x: (1 - sx / pts.length) * W,
+      y:     sy / pts.length  * H,
+    };
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     6. MediaPipe Hands
+  ═══════════════════════════════════════════════════════════════ */
+  const hands = new Hands({
+    locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`,
+  });
+  hands.setOptions({
+    maxNumHands            : 1,
+    modelComplexity        : 1,
+    minDetectionConfidence : 0.70,
+    minTrackingConfidence  : 0.50,
+  });
+  hands.onResults(results => {
+    if (results.multiHandLandmarks?.length > 0) {
+      const lm     = results.multiHandLandmarks[0];
+      fistClosed   = detectFist(lm);
+      handPos      = palmCenter(lm);
+      handVisible  = true;
+      statusEl.textContent = fistClosed ? '✊ 주먹 — 조개를 끌어당기는 중' : '✋ 손 인식됨';
+    } else {
+      handVisible = false;
+      fistClosed  = false;
+      statusEl.textContent = '손을 카메라에 보여주세요';
+    }
+  });
+
+  const camera = new Camera(video, {
+    onFrame : async () => { await hands.send({ image: video }); },
+    width   : 640,
+    height  : 480,
+  });
+  camera.start()
+    .then(() => { statusEl.textContent = '손을 카메라에 보여주세요'; })
+    .catch(e => { statusEl.textContent = '카메라 오류: ' + e.message; });
+
+  /* ═══════════════════════════════════════════════════════════════
+     7. 물리 상호작용 상수
+        — 무거운 물성 표현:
+          · 낮은 SPRING_STRENGTH → 손보다 느리게 따라옴 (지연감)
+          · 낮은 frictionAir     → 손 놓은 후 관성으로 한참 더 미끄러짐
+          · 높은 mass            → 가속이 더디고 묵직한 느낌
+  ═══════════════════════════════════════════════════════════════ */
+  const GRAB_RADIUS      = 175;     // 끌어당기는 반경 (px)
+  const SPRING_STRENGTH  = 0.00095; // 스프링 강도 — 낮을수록 묵직하게 따라옴
+  const DIST_POWER       = 1.6;     // 거리 감쇠 지수
+  const MAX_FORCE        = 0.055;   // 프레임당 최대 힘 클램프
+
+  /* ═══════════════════════════════════════════════════════════════
+     8. 메인 렌더 루프
+  ═══════════════════════════════════════════════════════════════ */
+  let lastTs = 0;
+  function loop(ts) {
+    const dt = Math.min(ts - lastTs, 33);   // 최대 33ms (30fps 하한)
+    lastTs = ts;
+
+    /* ── 8-1. 웹캠 프레임 (좌우 반전) → wc-canvas ── */
+    wcCtx.clearRect(0, 0, W, H);
+    if (video.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA) {
+      wcCtx.save();
+      wcCtx.scale(-1, 1);
+      wcCtx.drawImage(video, -W, 0, W, H);
+      wcCtx.restore();
+    }
+
+    /* ── 8-2. 주먹일 때 스프링 힘 적용 ── */
+    if (handVisible && fistClosed) {
+      shellBodies.forEach(body => {
+        const dx   = handPos.x - body.position.x;
+        const dy   = handPos.y - body.position.y;
+        const dist = Math.hypot(dx, dy);
+
+        if (dist < GRAB_RADIUS && dist > 2) {
+          const norm    = dist / GRAB_RADIUS;
+          const falloff = Math.pow(1 - norm, DIST_POWER); // 가장자리로 갈수록 약해짐
+
+          // 방향 * 거리 * 감쇠 * 세기 * 질량
+          let fx = (dx / dist) * dist * falloff * SPRING_STRENGTH * body.mass;
+          let fy = (dy / dist) * dist * falloff * SPRING_STRENGTH * body.mass;
+
+          // 클램프
+          const fmag = Math.hypot(fx, fy);
+          if (fmag > MAX_FORCE) { fx = fx / fmag * MAX_FORCE; fy = fy / fmag * MAX_FORCE; }
+
+          Body.applyForce(body, body.position, { x: fx, y: fy });
+
+          // 미세 회전 감쇠 — 조개가 살짝 흔들리다 진정되도록
+          Body.setAngularVelocity(body, body.angularVelocity * 0.92);
+        }
+      });
+    }
+    // 주먹을 펼 때는 별도 처리 없음 — frictionAir가 관성 감속 담당
+
+    /* ── 8-3. 물리 엔진 업데이트 ── */
+    Engine.update(engine, dt);
+
+    /* ── 8-4. 조개껍질 그리기 ── */
+    phCtx.clearRect(0, 0, W, H);
+    shellBodies.forEach((body, i) => {
+      drawShell(phCtx, body.position.x, body.position.y, shellMeta[i].size, body.angle, shellMeta[i]);
+    });
+
+    /* ── 8-5. 손 커서 ── */
+    if (handVisible) {
+      phCtx.save();
+
+      if (fistClosed) {
+        /* 반경 힌트 원 */
+        phCtx.beginPath();
+        phCtx.arc(handPos.x, handPos.y, GRAB_RADIUS, 0, Math.PI * 2);
+        phCtx.strokeStyle = 'rgba(255,200,80,0.10)';
+        phCtx.lineWidth   = 1;
+        phCtx.stroke();
+
+        /* 바깥 링 */
+        phCtx.beginPath();
+        phCtx.arc(handPos.x, handPos.y, 36, 0, Math.PI * 2);
+        phCtx.strokeStyle = 'rgba(255,200,80,0.85)';
+        phCtx.lineWidth   = 2.5;
+        phCtx.stroke();
+
+        /* 중심 점 */
+        phCtx.beginPath();
+        phCtx.arc(handPos.x, handPos.y, 9, 0, Math.PI * 2);
+        phCtx.fillStyle = 'rgba(255,200,80,0.90)';
+        phCtx.fill();
+      } else {
+        /* 열린 손 — 점선 원 */
+        phCtx.beginPath();
+        phCtx.arc(handPos.x, handPos.y, 24, 0, Math.PI * 2);
+        phCtx.strokeStyle = 'rgba(255,255,255,0.38)';
+        phCtx.lineWidth   = 1.5;
+        phCtx.setLineDash([5, 6]);
+        phCtx.stroke();
+        phCtx.setLineDash([]);
+      }
+
+      phCtx.restore();
+    }
+
+    requestAnimationFrame(loop);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     9. 초기화
+  ═══════════════════════════════════════════════════════════════ */
+  wcCanvas.width  = phCanvas.width  = W;
+  wcCanvas.height = phCanvas.height = H;
+  refreshWalls();
+  window.addEventListener('resize', resizeAll);
+  requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

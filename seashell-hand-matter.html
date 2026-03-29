@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>조개껍질 손 궤적 인터랙션</title>
+  <style>
+    :root {
+      --bg: #050505;
+      --text: rgba(240, 225, 190, 0.86);
+      --muted: rgba(240, 225, 190, 0.48);
+      --line: rgba(255, 210, 140, 0.18);
+      --glow: rgba(255, 194, 96, 0.9);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      font-family: "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(255, 210, 120, 0.07), transparent 28%),
+        radial-gradient(circle at 80% 32%, rgba(210, 170, 120, 0.05), transparent 26%),
+        radial-gradient(circle at 50% 100%, rgba(120, 85, 45, 0.08), transparent 44%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    #video {
+      display: none;
+    }
+
+    canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    #webcam-layer {
+      z-index: 1;
+      opacity: 0.2;
+      filter: saturate(0.4) contrast(0.9) blur(1px);
+    }
+
+    #scene-layer {
+      z-index: 2;
+    }
+
+    #hud {
+      position: fixed;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+    }
+
+    #status,
+    #hint {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      letter-spacing: 0.04em;
+      text-shadow: 0 0 18px rgba(0, 0, 0, 0.55);
+    }
+
+    #status {
+      top: 16px;
+      color: var(--text);
+      font-size: 12px;
+    }
+
+    #hint {
+      bottom: 20px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <video id="video" playsinline autoplay muted></video>
+  <canvas id="webcam-layer"></canvas>
+  <canvas id="scene-layer"></canvas>
+  <div id="hud">
+    <div id="status">카메라를 초기화하는 중...</div>
+    <div id="hint">주먹을 쥐고 손을 움직이면 주변 조개껍질이 늦게 끌려옵니다.</div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+  <script>
+    const video = document.getElementById("video");
+    const webcamCanvas = document.getElementById("webcam-layer");
+    const sceneCanvas = document.getElementById("scene-layer");
+    const webcamCtx = webcamCanvas.getContext("2d");
+    const sceneCtx = sceneCanvas.getContext("2d");
+    const statusEl = document.getElementById("status");
+
+    const {
+      Engine,
+      World,
+      Bodies,
+      Body
+    } = Matter;
+
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+
+    const engine = Engine.create({
+      gravity: { x: 0, y: 0 },
+      positionIterations: 12,
+      velocityIterations: 10,
+      constraintIterations: 4
+    });
+    const world = engine.world;
+
+    const wallThickness = 140;
+    let walls = [];
+    const shells = [];
+    const shellSprites = [];
+
+    const handState = {
+      visible: false,
+      fist: false,
+      raw: { x: width * 0.5, y: height * 0.5 },
+      smoothed: { x: width * 0.5, y: height * 0.5 },
+      velocity: { x: 0, y: 0 }
+    };
+
+    const handTrail = [];
+    const maxTrailPoints = 42;
+
+    const SHELL_COUNT = 18;
+    const GRAB_RADIUS = 240;
+    const TRAIL_DELAY_STEP = 2;
+    const CLUSTER_RADIUS = 118;
+    const FOLLOW_FORCE = 0.28;
+    const VELOCITY_BLEND = 0.08;
+    const RELEASE_FORCE = 0.002;
+    const MAX_FORCE = 0.28;
+
+    function resize() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      webcamCanvas.width = sceneCanvas.width = width;
+      webcamCanvas.height = sceneCanvas.height = height;
+      buildWalls();
+    }
+
+    function buildWalls() {
+      if (walls.length) World.remove(world, walls);
+      walls = [
+        Bodies.rectangle(width / 2, -wallThickness / 2, width + wallThickness * 2, wallThickness, { isStatic: true }),
+        Bodies.rectangle(width / 2, height + wallThickness / 2, width + wallThickness * 2, wallThickness, { isStatic: true }),
+        Bodies.rectangle(-wallThickness / 2, height / 2, wallThickness, height + wallThickness * 2, { isStatic: true }),
+        Bodies.rectangle(width + wallThickness / 2, height / 2, wallThickness, height + wallThickness * 2, { isStatic: true })
+      ];
+      World.add(world, walls);
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function distance(a, b) {
+      return Math.hypot(a.x - b.x, a.y - b.y);
+    }
+
+    function hexToRgba(hex, alpha) {
+      const clean = hex.replace("#", "");
+      const num = Number.parseInt(clean, 16);
+      const r = (num >> 16) & 255;
+      const g = (num >> 8) & 255;
+      const b = num & 255;
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    function createShellSprite(src) {
+      const img = new Image();
+      img.src = src;
+      return img;
+    }
+
+    function createShells() {
+      const shellSources = [
+        "shell%201.png",
+        "shell%202.png",
+        "shell%203.png"
+      ];
+
+      for (let i = 0; i < SHELL_COUNT; i++) {
+        const size = 110 + Math.random() * 70;
+        const x = 100 + Math.random() * Math.max(160, width - 200);
+        const y = 100 + Math.random() * Math.max(160, height - 200);
+        const body = Bodies.circle(x, y, size * 0.34, {
+          label: "shell",
+          friction: 0.92,
+          frictionStatic: 0.98,
+          frictionAir: 0.038,
+          restitution: 0.02,
+          density: 0.03
+        });
+
+        body.plugin = {
+          size,
+          lagIndex: 4 + (i % 7) * TRAIL_DELAY_STEP,
+          forceScale: 0.8 + Math.random() * 0.5,
+          orbitSeed: Math.random() * Math.PI * 2
+        };
+
+        Body.setAngle(body, 0);
+        Body.setVelocity(body, {
+          x: (Math.random() - 0.5) * 0.12,
+          y: (Math.random() - 0.5) * 0.12
+        });
+
+        shells.push(body);
+        shellSprites.push(createShellSprite(shellSources[i % shellSources.length]));
+      }
+
+      World.add(world, shells);
+    }
+
+    function updateHandTrail() {
+      if (!handState.visible || !handState.fist) return;
+
+      handTrail.unshift({
+        x: handState.smoothed.x,
+        y: handState.smoothed.y,
+        vx: handState.velocity.x,
+        vy: handState.velocity.y
+      });
+
+      if (handTrail.length > maxTrailPoints) {
+        handTrail.length = maxTrailPoints;
+      }
+    }
+
+    function getTrailTarget(index) {
+      return handTrail[Math.min(index, handTrail.length - 1)] || null;
+    }
+
+    function applyHandForces() {
+      if (!handState.visible || !handState.fist || handTrail.length === 0) return;
+
+      shells.forEach((shell, index) => {
+        const target = getTrailTarget(shell.plugin.lagIndex);
+        if (!target) return;
+
+        const distToHand = distance(shell.position, handState.smoothed);
+        if (distToHand > GRAB_RADIUS) return;
+
+        const orbitAngle = shell.plugin.orbitSeed + index * 0.52;
+        const orbitRadius = CLUSTER_RADIUS * (0.42 + (index % 5) * 0.13);
+        const anchor = {
+          x: target.x + Math.cos(orbitAngle) * orbitRadius,
+          y: target.y + Math.sin(orbitAngle) * orbitRadius * 0.72
+        };
+
+        const dx = anchor.x - shell.position.x;
+        const dy = anchor.y - shell.position.y;
+        const normalizedRadius = 1 - distToHand / GRAB_RADIUS;
+        const falloff = Math.pow(clamp(normalizedRadius, 0, 1), 1.35);
+
+        let fx = dx * FOLLOW_FORCE * shell.mass * shell.plugin.forceScale * falloff;
+        let fy = dy * FOLLOW_FORCE * shell.mass * shell.plugin.forceScale * falloff;
+
+        fx += target.vx * VELOCITY_BLEND * shell.mass * falloff;
+        fy += target.vy * VELOCITY_BLEND * shell.mass * falloff;
+
+        const forceMag = Math.hypot(fx, fy);
+        if (forceMag > MAX_FORCE) {
+          fx = fx / forceMag * MAX_FORCE;
+          fy = fy / forceMag * MAX_FORCE;
+        }
+
+        Body.applyForce(shell, shell.position, { x: fx, y: fy });
+        Body.setAngle(shell, 0);
+        Body.setAngularVelocity(shell, 0);
+      });
+    }
+
+    function applyReleaseForces() {
+      if (handState.fist) return;
+
+      shells.forEach((shell) => {
+        const dx = shell.position.x - handState.smoothed.x;
+        const dy = shell.position.y - handState.smoothed.y;
+        const dist = Math.max(1, Math.hypot(dx, dy));
+        if (dist > GRAB_RADIUS * 1.1) return;
+
+        const push = Math.pow(1 - clamp(dist / (GRAB_RADIUS * 1.1), 0, 1), 1.8);
+        let fx = (dx / dist) * RELEASE_FORCE * shell.mass * (0.7 + shell.plugin.forceScale) * push;
+        let fy = (dy / dist) * RELEASE_FORCE * shell.mass * (0.7 + shell.plugin.forceScale) * push;
+
+        const forceMag = Math.hypot(fx, fy);
+        if (forceMag > MAX_FORCE * 0.7) {
+          fx = fx / forceMag * MAX_FORCE * 0.7;
+          fy = fy / forceMag * MAX_FORCE * 0.7;
+        }
+
+        Body.applyForce(shell, shell.position, { x: fx, y: fy });
+        Body.setAngle(shell, 0);
+        Body.setAngularVelocity(shell, 0);
+      });
+    }
+
+    function drawWebcam() {
+      webcamCtx.clearRect(0, 0, width, height);
+      if (video.readyState < HTMLMediaElement.HAVE_ENOUGH_DATA) return;
+
+      webcamCtx.save();
+      webcamCtx.scale(-1, 1);
+      webcamCtx.drawImage(video, -width, 0, width, height);
+      webcamCtx.restore();
+    }
+
+    function drawBackgroundVeil() {
+      sceneCtx.save();
+      const gradient = sceneCtx.createLinearGradient(0, 0, 0, height);
+      gradient.addColorStop(0, "rgba(0, 0, 0, 0.18)");
+      gradient.addColorStop(1, "rgba(0, 0, 0, 0.34)");
+      sceneCtx.fillStyle = gradient;
+      sceneCtx.fillRect(0, 0, width, height);
+      sceneCtx.restore();
+    }
+
+    function drawShells() {
+      shells.forEach((shell, index) => {
+        const sprite = shellSprites[index];
+        const size = shell.plugin.size;
+        sceneCtx.save();
+        sceneCtx.translate(shell.position.x, shell.position.y);
+        sceneCtx.globalAlpha = 0.98;
+        sceneCtx.drawImage(sprite, -size * 0.62, -size * 0.5, size * 1.24, size);
+        sceneCtx.restore();
+      });
+    }
+
+    function drawHandAura() {
+      if (!handState.visible) return;
+
+      sceneCtx.save();
+      sceneCtx.translate(handState.smoothed.x, handState.smoothed.y);
+
+      if (handState.fist) {
+        const radial = sceneCtx.createRadialGradient(0, 0, 10, 0, 0, GRAB_RADIUS);
+        radial.addColorStop(0, "rgba(255, 192, 96, 0.16)");
+        radial.addColorStop(1, "rgba(255, 192, 96, 0)");
+        sceneCtx.fillStyle = radial;
+        sceneCtx.beginPath();
+        sceneCtx.arc(0, 0, GRAB_RADIUS, 0, Math.PI * 2);
+        sceneCtx.fill();
+
+        sceneCtx.strokeStyle = "rgba(255, 196, 110, 0.2)";
+        sceneCtx.lineWidth = 1.4;
+        sceneCtx.beginPath();
+        sceneCtx.arc(0, 0, GRAB_RADIUS, 0, Math.PI * 2);
+        sceneCtx.stroke();
+
+        sceneCtx.strokeStyle = "rgba(255, 215, 160, 0.86)";
+        sceneCtx.lineWidth = 2.4;
+        sceneCtx.beginPath();
+        sceneCtx.arc(0, 0, 30, 0, Math.PI * 2);
+        sceneCtx.stroke();
+
+        sceneCtx.fillStyle = "rgba(255, 210, 120, 0.96)";
+        sceneCtx.beginPath();
+        sceneCtx.arc(0, 0, 8, 0, Math.PI * 2);
+        sceneCtx.fill();
+      } else {
+        sceneCtx.strokeStyle = "rgba(255, 255, 255, 0.36)";
+        sceneCtx.setLineDash([5, 6]);
+        sceneCtx.lineWidth = 1.4;
+        sceneCtx.beginPath();
+        sceneCtx.arc(0, 0, 24, 0, Math.PI * 2);
+        sceneCtx.stroke();
+        sceneCtx.setLineDash([]);
+      }
+
+      sceneCtx.restore();
+    }
+
+    function drawTrail() {
+      if (!handState.fist || handTrail.length < 2) return;
+      sceneCtx.save();
+      sceneCtx.lineCap = "round";
+
+      for (let i = 0; i < handTrail.length - 1; i++) {
+        const current = handTrail[i];
+        const next = handTrail[i + 1];
+        const alpha = (1 - i / handTrail.length) * 0.18;
+        sceneCtx.strokeStyle = hexToRgba("#ffcc88", alpha);
+        sceneCtx.lineWidth = (1 - i / handTrail.length) * 12 + 1;
+        sceneCtx.beginPath();
+        sceneCtx.moveTo(current.x, current.y);
+        sceneCtx.lineTo(next.x, next.y);
+        sceneCtx.stroke();
+      }
+
+      sceneCtx.restore();
+    }
+
+    function render() {
+      sceneCtx.clearRect(0, 0, width, height);
+      drawBackgroundVeil();
+      drawTrail();
+      drawShells();
+      drawHandAura();
+    }
+
+    function detectFist(landmarks) {
+      const wrist = landmarks[0];
+      const tips = [8, 12, 16, 20];
+      const pips = [6, 10, 14, 18];
+      const mcps = [5, 9, 13, 17];
+
+      let curled = 0;
+      for (let i = 0; i < tips.length; i++) {
+        const tip = landmarks[tips[i]];
+        const pip = landmarks[pips[i]];
+        const mcp = landmarks[mcps[i]];
+
+        const tipToWrist = Math.hypot(tip.x - wrist.x, tip.y - wrist.y);
+        const pipToWrist = Math.hypot(pip.x - wrist.x, pip.y - wrist.y);
+        const tipToMcp = Math.hypot(tip.x - mcp.x, tip.y - mcp.y);
+
+        if (tipToWrist < pipToWrist * 1.05 && tipToMcp < 0.18) curled++;
+      }
+
+      const thumbTip = landmarks[4];
+      const indexMcp = landmarks[5];
+      const thumbIndex = Math.hypot(thumbTip.x - indexMcp.x, thumbTip.y - indexMcp.y);
+      return curled >= 3 && thumbIndex < 0.17;
+    }
+
+    function getPalmCenter(landmarks) {
+      const palmIndices = [0, 5, 9, 13, 17];
+      let sumX = 0;
+      let sumY = 0;
+
+      palmIndices.forEach((index) => {
+        sumX += landmarks[index].x;
+        sumY += landmarks[index].y;
+      });
+
+      return {
+        x: (1 - sumX / palmIndices.length) * width,
+        y: (sumY / palmIndices.length) * height
+      };
+    }
+
+    const hands = new Hands({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+    });
+
+    hands.setOptions({
+      maxNumHands: 1,
+      modelComplexity: 1,
+      minDetectionConfidence: 0.68,
+      minTrackingConfidence: 0.55
+    });
+
+    hands.onResults((results) => {
+      if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
+        handState.visible = false;
+        handState.fist = false;
+        statusEl.textContent = "손을 카메라 안으로 가져와 주세요.";
+        return;
+      }
+
+      const landmarks = results.multiHandLandmarks[0];
+      const center = getPalmCenter(landmarks);
+      const previous = { ...handState.smoothed };
+
+      handState.visible = true;
+      handState.fist = detectFist(landmarks);
+      handState.raw = center;
+      handState.smoothed = {
+        x: previous.x + (center.x - previous.x) * 0.26,
+        y: previous.y + (center.y - previous.y) * 0.26
+      };
+      handState.velocity = {
+        x: handState.smoothed.x - previous.x,
+        y: handState.smoothed.y - previous.y
+      };
+
+      if (handState.fist) {
+        statusEl.textContent = "주먹 인식됨: 손의 이전 궤적을 따라 조개껍질이 묵직하게 끌려옵니다.";
+      } else {
+        statusEl.textContent = "손 인식됨: 주먹을 쥐면 조개껍질을 끌 수 있습니다.";
+        handTrail.length = Math.min(handTrail.length, 10);
+      }
+    });
+
+    const camera = new Camera(video, {
+      onFrame: async () => {
+        await hands.send({ image: video });
+      },
+      width: 640,
+      height: 480
+    });
+
+    function tick(timestamp) {
+      if (!tick.lastTime) tick.lastTime = timestamp;
+      const delta = Math.min(33, timestamp - tick.lastTime);
+      tick.lastTime = timestamp;
+
+      updateHandTrail();
+      applyHandForces();
+      applyReleaseForces();
+      Engine.update(engine, delta);
+      drawWebcam();
+      render();
+
+      if (!handState.fist && handTrail.length > 0) {
+        handTrail.length = Math.max(0, handTrail.length - 1);
+      }
+
+      requestAnimationFrame(tick);
+    }
+
+    resize();
+    createShells();
+    window.addEventListener("resize", resize);
+
+    Promise.resolve(camera.start())
+      .then(() => {
+        statusEl.textContent = "손을 화면에 비춰 주세요.";
+      })
+      .catch((error) => {
+        statusEl.textContent = `카메라 접근 오류: ${error.message}`;
+      });
+
+    requestAnimationFrame(tick);
+  </script>
+</body>
+</html>

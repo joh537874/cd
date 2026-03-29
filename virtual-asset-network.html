@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>가상자산 네트워크</title>
+  <style>
+    :root {
+      --bg: #050505;
+      --text: rgba(239, 236, 225, 0.92);
+      --muted: rgba(239, 236, 225, 0.5);
+      --cyan: rgba(121, 228, 255, 0.94);
+      --cyan-soft: rgba(121, 228, 255, 0.12);
+      --gold: rgba(255, 221, 146, 0.94);
+      --line: rgba(255, 255, 255, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      font-family: "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 18% 20%, rgba(255, 231, 180, 0.04), transparent 24%),
+        radial-gradient(circle at 84% 18%, rgba(121, 228, 255, 0.08), transparent 28%),
+        radial-gradient(circle at 74% 82%, rgba(96, 138, 255, 0.08), transparent 30%),
+        linear-gradient(180deg, rgba(255,255,255,0.012), rgba(0,0,0,0.14));
+      z-index: 0;
+    }
+
+    #video {
+      display: none;
+    }
+
+    canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    #webcam-layer {
+      z-index: 1;
+      opacity: 0.2;
+      filter: saturate(0.38) contrast(0.88) blur(1px);
+    }
+
+    #scene-layer {
+      z-index: 2;
+    }
+
+    #hud {
+      position: fixed;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+    }
+
+    #status,
+    #hint,
+    #panel {
+      position: fixed;
+      text-shadow: 0 0 18px rgba(0, 0, 0, 0.52);
+    }
+
+    #status {
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: var(--text);
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      text-align: center;
+    }
+
+    #hint {
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: var(--muted);
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      text-align: center;
+    }
+
+    #panel {
+      top: 22px;
+      right: 22px;
+      min-width: 220px;
+      padding: 14px 18px 16px;
+      border-radius: 20px;
+      border: 1px solid var(--line);
+      background: rgba(11, 15, 20, 0.52);
+      backdrop-filter: blur(14px);
+      text-align: right;
+    }
+
+    #panel-label {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    #panel-value {
+      display: block;
+      color: var(--text);
+      font-size: 34px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    #panel-sub {
+      display: block;
+      color: rgba(121, 228, 255, 0.72);
+      font-size: 12px;
+      margin-top: 6px;
+    }
+  </style>
+</head>
+<body>
+  <video id="video" playsinline autoplay muted></video>
+  <canvas id="webcam-layer"></canvas>
+  <canvas id="scene-layer"></canvas>
+  <div id="hud">
+    <div id="status">카메라를 초기화하는 중...</div>
+    <div id="panel">
+      <span id="panel-label">Network Activity</span>
+      <span id="panel-value">0</span>
+      <span id="panel-sub">깜빡임이 신호 확산을 활성화합니다</span>
+    </div>
+    <div id="hint">눈을 깜빡이면 네트워크 노드에서 빛이 시작되어 전체 망으로 퍼집니다.</div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+
+  <script>
+    const video = document.getElementById("video");
+    const webcamCanvas = document.getElementById("webcam-layer");
+    const sceneCanvas = document.getElementById("scene-layer");
+    const webcamCtx = webcamCanvas.getContext("2d");
+    const sceneCtx = sceneCanvas.getContext("2d");
+    const statusEl = document.getElementById("status");
+    const panelValueEl = document.getElementById("panel-value");
+    const { Engine, World, Bodies, Body } = Matter;
+
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    let activityCount = 0;
+    const engine = Engine.create({
+      gravity: { x: 0, y: 0 }
+    });
+    const world = engine.world;
+
+    const network = {
+      nodes: [],
+      edges: [],
+      adjacency: new Map(),
+      pulses: [],
+      nodeFlash: [],
+      carriers: []
+    };
+
+    const blinkState = {
+      blinkCooldownUntil: 0,
+      smoothedEAR: 0.32,
+      faceCenter: { x: width * 0.5, y: height * 0.45 },
+      leftEyeCenter: { x: width * 0.46, y: height * 0.42 },
+      rightEyeCenter: { x: width * 0.54, y: height * 0.42 },
+      visible: false,
+      blinkFlash: 0
+    };
+
+    const LEFT_EYE = [33, 159, 145, 133];
+    const RIGHT_EYE = [362, 386, 374, 263];
+
+    function resize() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      webcamCanvas.width = sceneCanvas.width = width;
+      webcamCanvas.height = sceneCanvas.height = height;
+      buildNetwork();
+    }
+
+    function dist(a, b) {
+      return Math.hypot(a.x - b.x, a.y - b.y);
+    }
+
+    function eyeRatio(landmarks, [outer, upper, lower, inner]) {
+      const a = landmarks[outer];
+      const b = landmarks[upper];
+      const c = landmarks[lower];
+      const d = landmarks[inner];
+      const horiz = Math.hypot(a.x - d.x, a.y - d.y) || 0.001;
+      const vert = Math.hypot(b.x - c.x, b.y - c.y);
+      return vert / horiz;
+    }
+
+    function buildNetwork() {
+      network.nodes = [];
+      network.edges = [];
+      network.adjacency = new Map();
+      network.nodeFlash = [];
+
+      const cols = 7;
+      const rows = 5;
+      const marginX = width * 0.1;
+      const marginY = height * 0.15;
+      const gapX = (width - marginX * 2) / (cols - 1);
+      const gapY = (height - marginY * 2) / (rows - 1);
+
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          const id = row * cols + col;
+          const x = marginX + col * gapX + (Math.random() - 0.5) * 34;
+          const y = marginY + row * gapY + (Math.random() - 0.5) * 28;
+          network.nodes.push({
+            id,
+            x,
+            y,
+            radius: 4 + Math.random() * 2,
+            charge: 0
+          });
+          network.adjacency.set(id, new Set());
+          network.nodeFlash[id] = 0;
+        }
+      }
+
+      function link(a, b) {
+        const key = a < b ? `${a}-${b}` : `${b}-${a}`;
+        if (network.edges.some((edge) => edge.key === key)) return;
+        network.edges.push({ key, a, b, glow: 0 });
+        network.adjacency.get(a).add(b);
+        network.adjacency.get(b).add(a);
+      }
+
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          const id = row * cols + col;
+          if (col < cols - 1) link(id, id + 1);
+          if (row < rows - 1) link(id, id + cols);
+          if (col < cols - 1 && row < rows - 1 && Math.random() < 0.68) link(id, id + cols + 1);
+          if (col > 0 && row < rows - 1 && Math.random() < 0.46) link(id, id + cols - 1);
+        }
+      }
+    }
+
+    function drawWebcam() {
+      webcamCtx.clearRect(0, 0, width, height);
+      if (video.readyState < HTMLMediaElement.HAVE_ENOUGH_DATA) return;
+      webcamCtx.save();
+      webcamCtx.scale(-1, 1);
+      webcamCtx.drawImage(video, -width, 0, width, height);
+      webcamCtx.restore();
+    }
+
+    function nearestNode(point) {
+      let best = network.nodes[0];
+      let bestDist = Infinity;
+      for (const node of network.nodes) {
+        const d = dist(point, node);
+        if (d < bestDist) {
+          best = node;
+          bestDist = d;
+        }
+      }
+      return best;
+    }
+
+    function triggerNetworkBurst(originId) {
+      const visited = new Set([originId]);
+      const queue = [{ id: originId, depth: 0, parent: null }];
+      const pulseTimes = [];
+      while (queue.length) {
+        const current = queue.shift();
+        pulseTimes.push(current);
+
+        if (current.depth > 5) continue;
+        for (const neighbor of network.adjacency.get(current.id)) {
+          if (visited.has(neighbor)) continue;
+          visited.add(neighbor);
+          queue.push({ id: neighbor, depth: current.depth + 1, parent: current.id });
+        }
+      }
+
+      const baseTime = performance.now();
+      pulseTimes.forEach(({ id, depth, parent }) => {
+        network.pulses.push({
+          type: "node",
+          nodeId: id,
+          start: baseTime + depth * 70,
+          duration: 260,
+          alpha: 1
+        });
+
+        for (const neighbor of network.adjacency.get(id)) {
+          if (neighbor < id) continue;
+          network.pulses.push({
+            type: "edge",
+            edgeKey: id < neighbor ? `${id}-${neighbor}` : `${neighbor}-${id}`,
+            from: id,
+            to: neighbor,
+            start: baseTime + depth * 70 + 18,
+            duration: 240,
+            alpha: 1
+          });
+        }
+
+        if (parent !== null) {
+          const from = network.nodes[parent];
+          const to = network.nodes[id];
+          const carrier = Bodies.circle(from.x, from.y, 3.2, {
+            friction: 0,
+            frictionAir: 0,
+            restitution: 0,
+            density: 0.0001
+          });
+          carrier.plugin = {
+            fromId: parent,
+            toId: id,
+            start: baseTime + depth * 70,
+            duration: 220,
+            alpha: 1,
+            label: ["0", "1", "10", "100", "+", "01", "101", "11"][Math.floor(Math.random() * 8)],
+            kind: Math.random() < 0.78 ? "digit" : "light"
+          };
+          World.add(world, carrier);
+          network.carriers.push(carrier);
+        }
+      });
+
+      activityCount += pulseTimes.length;
+      panelValueEl.textContent = activityCount.toLocaleString("ko-KR");
+      blinkState.blinkFlash = 1;
+      statusEl.textContent = "깜빡임 감지됨: 값이 네트워크를 따라 연쇄적으로 확산 중입니다.";
+    }
+
+    function updatePulses(now) {
+      network.nodeFlash = network.nodeFlash.map((value) => value * 0.9);
+      network.edges.forEach((edge) => {
+        edge.glow *= 0.9;
+      });
+
+      for (let i = network.pulses.length - 1; i >= 0; i--) {
+        const pulse = network.pulses[i];
+        const t = (now - pulse.start) / pulse.duration;
+        if (t < 0) continue;
+        if (t >= 1) {
+          network.pulses.splice(i, 1);
+          continue;
+        }
+
+        const eased = 1 - Math.abs(1 - t * 2);
+        if (pulse.type === "node") {
+          network.nodeFlash[pulse.nodeId] = Math.max(network.nodeFlash[pulse.nodeId], eased);
+        } else if (pulse.type === "edge") {
+          const edge = network.edges.find((item) => item.key === pulse.edgeKey);
+          if (edge) edge.glow = Math.max(edge.glow, eased);
+        }
+      }
+
+      for (let i = network.carriers.length - 1; i >= 0; i--) {
+        const carrier = network.carriers[i];
+        const info = carrier.plugin;
+        const from = network.nodes[info.fromId];
+        const to = network.nodes[info.toId];
+        const t = (now - info.start) / info.duration;
+
+        if (t < 0) continue;
+        if (t >= 1) {
+          World.remove(world, carrier);
+          network.carriers.splice(i, 1);
+          continue;
+        }
+
+        const eased = 1 - Math.pow(1 - t, 2);
+        const x = from.x + (to.x - from.x) * eased;
+        const y = from.y + (to.y - from.y) * eased;
+        Body.setPosition(carrier, { x, y });
+        info.alpha = 1 - t * 0.25;
+      }
+    }
+
+    function drawNetwork() {
+      sceneCtx.clearRect(0, 0, width, height);
+
+      const bg = sceneCtx.createLinearGradient(0, 0, width, height);
+      bg.addColorStop(0, "rgba(7, 11, 16, 0.18)");
+      bg.addColorStop(1, "rgba(4, 6, 9, 0.04)");
+      sceneCtx.fillStyle = bg;
+      sceneCtx.fillRect(0, 0, width, height);
+
+      if (blinkState.visible) {
+        sceneCtx.save();
+        sceneCtx.fillStyle = "rgba(0, 0, 0, 0.22)";
+        sceneCtx.fillRect(0, 0, width, height);
+        sceneCtx.globalCompositeOperation = "destination-out";
+
+        const leftFocus = sceneCtx.createRadialGradient(
+          blinkState.leftEyeCenter.x,
+          blinkState.leftEyeCenter.y,
+          6,
+          blinkState.leftEyeCenter.x,
+          blinkState.leftEyeCenter.y,
+          90
+        );
+        leftFocus.addColorStop(0, "rgba(0,0,0,0.95)");
+        leftFocus.addColorStop(1, "rgba(0,0,0,0)");
+        sceneCtx.fillStyle = leftFocus;
+        sceneCtx.beginPath();
+        sceneCtx.arc(blinkState.leftEyeCenter.x, blinkState.leftEyeCenter.y, 92, 0, Math.PI * 2);
+        sceneCtx.fill();
+
+        const rightFocus = sceneCtx.createRadialGradient(
+          blinkState.rightEyeCenter.x,
+          blinkState.rightEyeCenter.y,
+          6,
+          blinkState.rightEyeCenter.x,
+          blinkState.rightEyeCenter.y,
+          90
+        );
+        rightFocus.addColorStop(0, "rgba(0,0,0,0.95)");
+        rightFocus.addColorStop(1, "rgba(0,0,0,0)");
+        sceneCtx.fillStyle = rightFocus;
+        sceneCtx.beginPath();
+        sceneCtx.arc(blinkState.rightEyeCenter.x, blinkState.rightEyeCenter.y, 92, 0, Math.PI * 2);
+        sceneCtx.fill();
+        sceneCtx.restore();
+      }
+
+      for (const edge of network.edges) {
+        const a = network.nodes[edge.a];
+        const b = network.nodes[edge.b];
+        sceneCtx.save();
+        sceneCtx.strokeStyle = `rgba(121, 228, 255, ${0.08 + edge.glow * 0.5})`;
+        sceneCtx.lineWidth = 1 + edge.glow * 2.4;
+        sceneCtx.shadowColor = `rgba(121, 228, 255, ${edge.glow * 0.45})`;
+        sceneCtx.shadowBlur = 16 * edge.glow;
+        sceneCtx.beginPath();
+        sceneCtx.moveTo(a.x, a.y);
+        sceneCtx.lineTo(b.x, b.y);
+        sceneCtx.stroke();
+        sceneCtx.restore();
+      }
+
+      for (const node of network.nodes) {
+        const flash = network.nodeFlash[node.id] || 0;
+        sceneCtx.save();
+        const radial = sceneCtx.createRadialGradient(node.x, node.y, 1, node.x, node.y, 24 + flash * 18);
+        radial.addColorStop(0, `rgba(255, 221, 146, ${0.7 + flash * 0.18})`);
+        radial.addColorStop(0.38, `rgba(121, 228, 255, ${0.22 + flash * 0.36})`);
+        radial.addColorStop(1, "rgba(121, 228, 255, 0)");
+        sceneCtx.fillStyle = radial;
+        sceneCtx.beginPath();
+        sceneCtx.arc(node.x, node.y, 24 + flash * 18, 0, Math.PI * 2);
+        sceneCtx.fill();
+
+        sceneCtx.fillStyle = `rgba(228, 245, 250, ${0.56 + flash * 0.42})`;
+        sceneCtx.beginPath();
+        sceneCtx.arc(node.x, node.y, node.radius + flash * 2.6, 0, Math.PI * 2);
+        sceneCtx.fill();
+        sceneCtx.restore();
+      }
+
+      for (const carrier of network.carriers) {
+        const alpha = carrier.plugin.alpha;
+        sceneCtx.save();
+        if (carrier.plugin.kind === "digit") {
+          sceneCtx.shadowColor = `rgba(255, 221, 146, ${alpha * 0.72})`;
+          sceneCtx.shadowBlur = 18;
+          sceneCtx.fillStyle = `rgba(255, 221, 146, ${alpha})`;
+          sceneCtx.font = "700 17px SFMono-Regular, Menlo, monospace";
+          sceneCtx.textAlign = "center";
+          sceneCtx.textBaseline = "middle";
+          sceneCtx.fillText(carrier.plugin.label, carrier.position.x, carrier.position.y);
+        } else {
+          sceneCtx.shadowColor = `rgba(255, 221, 146, ${alpha * 0.7})`;
+          sceneCtx.shadowBlur = 16;
+          sceneCtx.fillStyle = `rgba(255, 221, 146, ${alpha})`;
+          sceneCtx.beginPath();
+          sceneCtx.arc(carrier.position.x, carrier.position.y, 3.4, 0, Math.PI * 2);
+          sceneCtx.fill();
+        }
+        sceneCtx.restore();
+      }
+
+      if (blinkState.visible) {
+        blinkState.blinkFlash *= 0.9;
+        sceneCtx.save();
+        sceneCtx.strokeStyle = `rgba(121, 228, 255, ${0.16 + blinkState.blinkFlash * 0.18})`;
+        sceneCtx.lineWidth = 1.2;
+        sceneCtx.beginPath();
+        sceneCtx.ellipse(blinkState.leftEyeCenter.x, blinkState.leftEyeCenter.y, 36 + blinkState.blinkFlash * 12, 18 + blinkState.blinkFlash * 8, 0, 0, Math.PI * 2);
+        sceneCtx.stroke();
+        sceneCtx.beginPath();
+        sceneCtx.ellipse(blinkState.rightEyeCenter.x, blinkState.rightEyeCenter.y, 36 + blinkState.blinkFlash * 12, 18 + blinkState.blinkFlash * 8, 0, 0, Math.PI * 2);
+        sceneCtx.stroke();
+        sceneCtx.restore();
+      }
+    }
+
+    function onResults(results) {
+      const now = performance.now();
+
+      if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
+        blinkState.visible = false;
+        statusEl.textContent = "얼굴을 카메라 안으로 가져와 주세요.";
+        return;
+      }
+
+      const landmarks = results.multiFaceLandmarks[0];
+      const left = eyeRatio(landmarks, LEFT_EYE);
+      const right = eyeRatio(landmarks, RIGHT_EYE);
+      const ear = (left + right) * 0.5;
+
+      blinkState.visible = true;
+      blinkState.smoothedEAR = blinkState.smoothedEAR * 0.82 + ear * 0.18;
+
+      const faceRef = landmarks[1];
+      blinkState.faceCenter = {
+        x: (1 - faceRef.x) * width,
+        y: faceRef.y * height
+      };
+      const leftEyeRef = landmarks[33];
+      const rightEyeRef = landmarks[263];
+      blinkState.leftEyeCenter = {
+        x: (1 - leftEyeRef.x) * width,
+        y: leftEyeRef.y * height
+      };
+      blinkState.rightEyeCenter = {
+        x: (1 - rightEyeRef.x) * width,
+        y: rightEyeRef.y * height
+      };
+
+      const threshold = 0.12;
+      if (ear < threshold && now > blinkState.blinkCooldownUntil) {
+        blinkState.blinkCooldownUntil = now + 500;
+        const origin = nearestNode(blinkState.faceCenter);
+        triggerNetworkBurst(origin.id);
+      } else {
+        statusEl.textContent = "눈을 깜빡이면 네트워크 전체로 값의 신호가 퍼집니다.";
+      }
+    }
+
+    const faceMesh = new FaceMesh({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+    });
+
+    faceMesh.setOptions({
+      maxNumFaces: 1,
+      refineLandmarks: true,
+      minDetectionConfidence: 0.7,
+      minTrackingConfidence: 0.6
+    });
+    faceMesh.onResults(onResults);
+
+    const camera = new Camera(video, {
+      onFrame: async () => {
+        await faceMesh.send({ image: video });
+      },
+      width: 640,
+      height: 480
+    });
+
+    function tick(ts) {
+      Engine.update(engine, 16.666);
+      updatePulses(ts);
+      drawWebcam();
+      drawNetwork();
+      requestAnimationFrame(tick);
+    }
+
+    resize();
+    window.addEventListener("resize", resize);
+
+    Promise.resolve(camera.start())
+      .then(() => {
+        statusEl.textContent = "눈을 깜빡이면 특정 노드에서 빛이 시작되어 네트워크 전체로 퍼집니다.";
+      })
+      .catch((error) => {
+        statusEl.textContent = `카메라 접근 오류: ${error.message}`;
+      });
+
+    requestAnimationFrame(tick);
+  </script>
+</body>
+</html>

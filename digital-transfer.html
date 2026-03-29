@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>디지털 송금 인터랙션</title>
+  <style>
+    :root {
+      --bg: #050505;
+      --text: rgba(239, 236, 225, 0.92);
+      --muted: rgba(239, 236, 225, 0.5);
+      --accent: rgba(144, 230, 248, 0.92);
+      --accent-soft: rgba(144, 230, 248, 0.16);
+      --gold: rgba(255, 226, 153, 0.96);
+      --line: rgba(255, 255, 255, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      font-family: "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 18% 20%, rgba(255, 236, 181, 0.04), transparent 22%),
+        radial-gradient(circle at 84% 18%, rgba(120, 210, 230, 0.08), transparent 26%),
+        radial-gradient(circle at 82% 82%, rgba(64, 120, 210, 0.08), transparent 28%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.012), rgba(0, 0, 0, 0.14));
+      z-index: 0;
+    }
+
+    #video {
+      display: none;
+    }
+
+    canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    #webcam-layer {
+      z-index: 1;
+      opacity: 0.2;
+      filter: saturate(0.4) contrast(0.9) blur(1px);
+    }
+
+    #scene-layer {
+      z-index: 2;
+    }
+
+    #hud {
+      position: fixed;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+    }
+
+    #status,
+    #hint,
+    #transfer-panel {
+      position: fixed;
+      text-shadow: 0 0 18px rgba(0, 0, 0, 0.52);
+    }
+
+    #status {
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: var(--text);
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      text-align: center;
+    }
+
+    #hint {
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: var(--muted);
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      text-align: center;
+    }
+
+    #transfer-panel {
+      top: 22px;
+      right: 22px;
+      padding: 14px 18px 16px;
+      min-width: 220px;
+      border-radius: 20px;
+      border: 1px solid var(--line);
+      background: rgba(10, 14, 18, 0.52);
+      backdrop-filter: blur(14px);
+      text-align: right;
+    }
+
+    #transfer-label {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    #transfer-amount {
+      display: block;
+      color: var(--text);
+      font-size: 34px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    #transfer-sub {
+      display: block;
+      color: rgba(144, 230, 248, 0.72);
+      font-size: 12px;
+      margin-top: 6px;
+    }
+  </style>
+</head>
+<body>
+  <video id="video" playsinline autoplay muted></video>
+  <canvas id="webcam-layer"></canvas>
+  <canvas id="scene-layer"></canvas>
+  <div id="hud">
+    <div id="status">카메라를 초기화하는 중...</div>
+    <div id="transfer-panel">
+      <span id="transfer-label">Transfer Complete</span>
+      <span id="transfer-amount">0</span>
+      <span id="transfer-sub">값이 기록되고 전송됩니다</span>
+    </div>
+    <div id="hint">검지로 화면을 톡톡 두드리면 숫자와 빛 조각이 생성되어 송금 완료 구역으로 전송됩니다.</div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+  <script>
+    const video = document.getElementById("video");
+    const webcamCanvas = document.getElementById("webcam-layer");
+    const sceneCanvas = document.getElementById("scene-layer");
+    const webcamCtx = webcamCanvas.getContext("2d");
+    const sceneCtx = sceneCanvas.getContext("2d");
+    const statusEl = document.getElementById("status");
+    const amountEl = document.getElementById("transfer-amount");
+
+    const { Engine, World, Bodies, Body } = Matter;
+
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    let transferZone = null;
+    let totalTransferred = 0;
+    let zonePulse = 0;
+
+    const engine = Engine.create({
+      gravity: { x: 0, y: 0 },
+      positionIterations: 8,
+      velocityIterations: 6
+    });
+    const world = engine.world;
+
+    const particles = [];
+    const particleBodies = [];
+
+    const FINGERTIP_INDICES = [4, 8, 12, 16, 20];
+    const fingertipStates = new Map();
+
+    function resize() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      webcamCanvas.width = sceneCanvas.width = width;
+      webcamCanvas.height = sceneCanvas.height = height;
+      transferZone = {
+        x: width - Math.max(250, width * 0.22),
+        y: 20,
+        w: Math.max(200, width * 0.18),
+        h: Math.max(160, height * 0.22)
+      };
+    }
+
+    function drawWebcam() {
+      webcamCtx.clearRect(0, 0, width, height);
+      if (video.readyState < HTMLMediaElement.HAVE_ENOUGH_DATA) return;
+      webcamCtx.save();
+      webcamCtx.scale(-1, 1);
+      webcamCtx.drawImage(video, -width, 0, width, height);
+      webcamCtx.restore();
+    }
+
+    function createParticle(x, y, label, value, hueShift) {
+      const body = Bodies.circle(x, y, 8 + Math.random() * 6, {
+        friction: 0,
+        frictionAir: 0.01,
+        restitution: 0.2,
+        density: 0.00015
+      });
+
+      body.plugin = {
+        type: "data",
+        label,
+        value,
+        alpha: 1,
+        scale: 1,
+        hueShift,
+        arrived: false
+      };
+
+      World.add(world, body);
+      particleBodies.push(body);
+      particles.push(body);
+
+      Body.setVelocity(body, {
+        x: (Math.random() - 0.5) * 0.22,
+        y: (Math.random() - 0.5) * 0.22
+      });
+    }
+
+    function spawnTransferBurst(x, y) {
+      const values = [100, 10, 1, 0];
+      const labels = ["100", "10", "1", "0", "+", "·"];
+      const value = values[Math.floor(Math.random() * values.length)];
+      const label = Math.random() < 0.82 ? String(value) : labels[Math.floor(Math.random() * labels.length)];
+      createParticle(
+        x + (Math.random() - 0.5) * 10,
+        y + (Math.random() - 0.5) * 10,
+        label,
+        Number.isFinite(value) ? value : 0,
+        Math.random()
+      );
+
+      for (const state of fingertipStates.values()) {
+        const dx = state.point.x - x;
+        const dy = state.point.y - y;
+        if (Math.hypot(dx, dy) < 36) {
+          state.flash = 1;
+          break;
+        }
+      }
+      statusEl.textContent = "탭 감지됨: 값이 숫자 조각으로 분해되어 전송 중입니다.";
+    }
+
+    function animateParticles() {
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const body = particles[i];
+        if (!body) continue;
+
+        const targetX = transferZone.x + transferZone.w * 0.54;
+        const targetY = transferZone.y + transferZone.h * 0.48;
+        const dx = targetX - body.position.x;
+        const dy = targetY - body.position.y;
+        const dist = Math.max(1, Math.hypot(dx, dy));
+
+        const forceScale = dist > 220 ? 0.00004 : 0.000065;
+        const fx = dx * forceScale * body.mass;
+        const fy = dy * forceScale * body.mass;
+        Body.applyForce(body, body.position, { x: fx, y: fy });
+
+        const damping = dist < 120 ? 0.91 : 0.965;
+        Body.setVelocity(body, {
+          x: body.velocity.x * damping,
+          y: body.velocity.y * damping
+        });
+
+        if (!body.plugin.arrived && body.position.x > transferZone.x && body.position.y < transferZone.y + transferZone.h) {
+          body.plugin.arrived = true;
+          totalTransferred += body.plugin.value;
+          amountEl.textContent = totalTransferred.toLocaleString("ko-KR");
+          zonePulse = 1;
+        }
+
+        if (body.plugin.arrived) {
+          body.plugin.alpha *= 0.92;
+          body.plugin.scale *= 0.985;
+          if (body.plugin.alpha < 0.05) {
+            World.remove(world, body);
+            particles.splice(i, 1);
+          }
+        }
+      }
+    }
+
+    function drawTransferZone() {
+      zonePulse *= 0.92;
+      sceneCtx.save();
+      const glow = sceneCtx.createRadialGradient(
+        transferZone.x + transferZone.w * 0.6,
+        transferZone.y + transferZone.h * 0.35,
+        10,
+        transferZone.x + transferZone.w * 0.6,
+        transferZone.y + transferZone.h * 0.35,
+        transferZone.w
+      );
+      glow.addColorStop(0, `rgba(144, 230, 248, ${0.16 + zonePulse * 0.26})`);
+      glow.addColorStop(1, "rgba(144, 230, 248, 0)");
+      sceneCtx.fillStyle = glow;
+      sceneCtx.fillRect(transferZone.x - 80, transferZone.y - 60, transferZone.w + 140, transferZone.h + 120);
+
+      sceneCtx.fillStyle = "rgba(8, 16, 22, 0.36)";
+      sceneCtx.fillRect(transferZone.x, transferZone.y, transferZone.w, transferZone.h);
+
+      sceneCtx.strokeStyle = `rgba(144, 230, 248, ${0.48 + zonePulse * 0.32})`;
+      sceneCtx.lineWidth = 1.8 + zonePulse * 4;
+      sceneCtx.setLineDash([8, 8]);
+      sceneCtx.strokeRect(transferZone.x, transferZone.y, transferZone.w, transferZone.h);
+      sceneCtx.setLineDash([]);
+
+      sceneCtx.fillStyle = "rgba(225, 245, 249, 0.82)";
+      sceneCtx.font = "600 14px Apple SD Gothic Neo, Noto Sans KR, sans-serif";
+      sceneCtx.fillText("송금 완료 구역", transferZone.x + 16, transferZone.y + 28);
+      sceneCtx.font = "400 12px Apple SD Gothic Neo, Noto Sans KR, sans-serif";
+      sceneCtx.fillStyle = "rgba(225, 245, 249, 0.56)";
+      sceneCtx.fillText("숫자 조각이 이곳에 기록됩니다", transferZone.x + 16, transferZone.y + 46);
+      sceneCtx.restore();
+    }
+
+    function drawParticles() {
+      for (const body of particles) {
+        const { label, alpha, scale, hueShift } = body.plugin;
+        const glowAlpha = alpha * (0.12 + hueShift * 0.1);
+        const color = hueShift > 0.52 ? `rgba(144, 230, 248, ${alpha})` : `rgba(255, 226, 153, ${alpha})`;
+        const glow = hueShift > 0.52 ? `rgba(144, 230, 248, ${glowAlpha})` : `rgba(255, 226, 153, ${glowAlpha})`;
+
+        sceneCtx.save();
+        sceneCtx.translate(body.position.x, body.position.y);
+        sceneCtx.scale(scale, scale);
+        sceneCtx.shadowColor = glow;
+        sceneCtx.shadowBlur = 18;
+        sceneCtx.fillStyle = color;
+        sceneCtx.font = "700 18px SFMono-Regular, Menlo, monospace";
+        sceneCtx.textAlign = "center";
+        sceneCtx.textBaseline = "middle";
+        sceneCtx.fillText(label, 0, 0);
+        sceneCtx.restore();
+      }
+    }
+
+    function drawTapCursors() {
+      for (const state of fingertipStates.values()) {
+        if (!state.visible) continue;
+        state.flash *= 0.88;
+
+        sceneCtx.save();
+        sceneCtx.translate(state.point.x, state.point.y);
+
+        const burstRadius = 16 + state.flash * 34;
+        sceneCtx.strokeStyle = `rgba(255, 226, 153, ${0.18 + state.flash * 0.42})`;
+        sceneCtx.lineWidth = 1.4;
+        sceneCtx.beginPath();
+        sceneCtx.arc(0, 0, burstRadius, 0, Math.PI * 2);
+        sceneCtx.stroke();
+
+        sceneCtx.fillStyle = "rgba(255, 236, 183, 0.88)";
+        sceneCtx.beginPath();
+        sceneCtx.arc(0, 0, 5, 0, Math.PI * 2);
+        sceneCtx.fill();
+
+        sceneCtx.restore();
+      }
+    }
+
+    function render() {
+      sceneCtx.clearRect(0, 0, width, height);
+      drawTransferZone();
+      drawParticles();
+      drawTapCursors();
+    }
+
+    function detectTap(state, now) {
+      if (state.history.length < 4 || now < state.cooldownUntil) return false;
+
+      const recent = state.history[state.history.length - 1];
+      const prev = state.history[state.history.length - 3];
+      const dy = recent.y - prev.y;
+      const dx = recent.x - prev.x;
+      const speed = Math.hypot(recent.vx, recent.vy);
+
+      const jabDown = dy > 3 && Math.abs(dx) < 64;
+      const fastEnough = speed > 4.5 || recent.vy > 3.8;
+      const rebound = recent.vy < prev.vy + 6;
+
+      if (jabDown && fastEnough && rebound) {
+        state.cooldownUntil = now + 120;
+        return true;
+      }
+      return false;
+    }
+
+    function getScreenPoint(landmarks, index) {
+      return {
+        x: (1 - landmarks[index].x) * width,
+        y: landmarks[index].y * height
+      };
+    }
+
+    function getOrCreateFingertipState(key, point) {
+      if (!fingertipStates.has(key)) {
+        fingertipStates.set(key, {
+          key,
+          visible: true,
+          point: { ...point },
+          velocity: { x: 0, y: 0 },
+          history: [],
+          cooldownUntil: 0,
+          flash: 0
+        });
+      }
+      return fingertipStates.get(key);
+    }
+
+    function onResults(results) {
+      const now = performance.now();
+      const seenKeys = new Set();
+
+      if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
+        fingertipStates.forEach((state) => {
+          state.visible = false;
+          state.history.length = 0;
+        });
+        statusEl.textContent = "손가락 끝을 카메라 안으로 가져와 주세요.";
+        return;
+      }
+
+      results.multiHandLandmarks.forEach((landmarks, handIdx) => {
+        FINGERTIP_INDICES.forEach((fingerIdx) => {
+          const key = `${handIdx}-${fingerIdx}`;
+          const point = getScreenPoint(landmarks, fingerIdx);
+          const state = getOrCreateFingertipState(key, point);
+          const previous = { ...state.point };
+
+          state.visible = true;
+          state.point = {
+            x: previous.x + (point.x - previous.x) * 0.7,
+            y: previous.y + (point.y - previous.y) * 0.7
+          };
+          state.velocity = {
+            x: state.point.x - previous.x,
+            y: state.point.y - previous.y
+          };
+
+          state.history.push({
+            x: state.point.x,
+            y: state.point.y,
+            vx: state.velocity.x,
+            vy: state.velocity.y,
+            t: now
+          });
+
+          if (state.history.length > 8) {
+            state.history.shift();
+          }
+
+          seenKeys.add(key);
+
+          if (detectTap(state, now)) {
+            spawnTransferBurst(state.point.x, state.point.y);
+          }
+        });
+      });
+
+      fingertipStates.forEach((state, key) => {
+        if (!seenKeys.has(key)) {
+          state.visible = false;
+          state.history.length = 0;
+        }
+      });
+
+      statusEl.textContent = "양손의 모든 손가락 끝으로 화면을 가볍게 톡톡 두드려 값을 생성해 보세요.";
+    }
+
+    const hands = new Hands({
+      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+    });
+
+    hands.setOptions({
+      maxNumHands: 2,
+      modelComplexity: 1,
+      minDetectionConfidence: 0.72,
+      minTrackingConfidence: 0.58
+    });
+    hands.onResults(onResults);
+
+    const camera = new Camera(video, {
+      onFrame: async () => {
+        await hands.send({ image: video });
+      },
+      width: 640,
+      height: 480
+    });
+
+    function tick(ts) {
+      if (!tick.last) tick.last = ts;
+      const delta = Math.min(33, ts - tick.last);
+      tick.last = ts;
+
+      Engine.update(engine, delta);
+      animateParticles();
+      drawWebcam();
+      render();
+      requestAnimationFrame(tick);
+    }
+
+    resize();
+    window.addEventListener("resize", resize);
+
+    Promise.resolve(camera.start())
+      .then(() => {
+        statusEl.textContent = "양손의 모든 손가락 끝으로 화면을 두드리면 숫자와 값이 송금 완료 구역으로 전송됩니다.";
+      })
+      .catch((error) => {
+        statusEl.textContent = `카메라 접근 오류: ${error.message}`;
+      });
+
+    requestAnimationFrame(tick);
+  </script>
+</body>
+</html>
