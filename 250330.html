@@ -219,6 +219,11 @@
     let handsBusy = false;
     let faceBusy = false;
     let lastVisionTs = 0;
+    let faceGlitchBox = null;
+    let lastFaceTs = 0;
+    const FACE_INTERVAL = 200;
+    const glitchCanvas = document.createElement('canvas');
+    const glitchCtx = glitchCanvas.getContext('2d');
     const counterFx = { pulse: 1, visible: false };
     const stageTitles = [
       "Shell Currency",
@@ -312,6 +317,44 @@
       webcamCtx.save();
       webcamCtx.scale(-1, 1);
       webcamCtx.drawImage(video, -width, 0, width, height);
+      webcamCtx.restore();
+      applyFaceGlitch();
+    }
+
+    function applyFaceGlitch() {
+      if (!faceGlitchBox) return;
+      const { x, y, w, h } = faceGlitchBox;
+      if (w <= 0 || h <= 0) return;
+
+      // 얼굴 영역을 오프스크린 캔버스에 복사
+      if (glitchCanvas.width !== w || glitchCanvas.height !== h) {
+        glitchCanvas.width = w;
+        glitchCanvas.height = h;
+      }
+      glitchCtx.clearRect(0, 0, w, h);
+      try {
+        glitchCtx.drawImage(webcamCanvas, x, y, w, h, 0, 0, w, h);
+      } catch (e) { return; }
+
+      // 수평 스트립 어긋나기 (글리치)
+      const numStrips = 5 + Math.floor(Math.random() * 5);
+      for (let i = 0; i < numStrips; i++) {
+        const sy = Math.floor(Math.random() * h);
+        const sh = 4 + Math.floor(Math.random() * 20);
+        const actualSh = Math.min(sh, h - sy);
+        if (actualSh <= 0) continue;
+        const dx = (Math.random() - 0.5) * 36;
+        webcamCtx.drawImage(glitchCanvas, 0, sy, w, actualSh, x + dx, y + sy, w, actualSh);
+      }
+
+      // 스미어: 낮은 투명도로 여러 번 어긋나게 그리기
+      webcamCtx.save();
+      for (let i = 1; i <= 3; i++) {
+        webcamCtx.globalAlpha = 0.13 / i;
+        const ox = (Math.random() - 0.5) * 20 * i;
+        const oy = (Math.random() - 0.5) * 5;
+        webcamCtx.drawImage(glitchCanvas, 0, 0, w, h, x + ox, y + oy, w, h);
+      }
       webcamCtx.restore();
     }
 
@@ -1369,6 +1412,29 @@
     const faceMesh = new FaceMesh({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}` });
     faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.7, minTrackingConfidence: 0.6 });
     faceMesh.onResults((results) => {
+      // 모든 스테이지에서 얼굴 바운딩박스 추출 (글리치 효과용)
+      if (results.multiFaceLandmarks && results.multiFaceLandmarks.length) {
+        const lm0 = results.multiFaceLandmarks[0];
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (const pt of lm0) {
+          const sx = (1 - pt.x) * width;
+          const sy = pt.y * height;
+          if (sx < minX) minX = sx;
+          if (sx > maxX) maxX = sx;
+          if (sy < minY) minY = sy;
+          if (sy > maxY) maxY = sy;
+        }
+        const pad = 24;
+        faceGlitchBox = {
+          x: Math.max(0, Math.floor(minX - pad)),
+          y: Math.max(0, Math.floor(minY - pad)),
+          w: Math.min(width - Math.max(0, Math.floor(minX - pad)), Math.ceil(maxX - minX + pad * 2)),
+          h: Math.min(height - Math.max(0, Math.floor(minY - pad)), Math.ceil(maxY - minY + pad * 2))
+        };
+      } else {
+        faceGlitchBox = null;
+      }
+
       if (activeStage !== 3) return;
       const now = performance.now();
       if (!results.multiFaceLandmarks || !results.multiFaceLandmarks.length) {
@@ -1422,6 +1488,12 @@
         faceBusy = true;
         try { await faceMesh.send({ image: video }); } finally { faceBusy = false; }
       } else {
+        // 얼굴 글리치용: hands보다 낮은 주기로 순차 실행 (충돌 방지)
+        if (!faceBusy && ts - lastFaceTs >= FACE_INTERVAL) {
+          lastFaceTs = ts;
+          faceBusy = true;
+          try { await faceMesh.send({ image: video }); } finally { faceBusy = false; }
+        }
         if (handsBusy) return;
         handsBusy = true;
         try { await hands.send({ image: video }); } finally { handsBusy = false; }
