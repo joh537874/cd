@@ -342,32 +342,42 @@
       if (glitchCanvas.width !== w || glitchCanvas.height !== h) {
         glitchCanvas.width = w;
         glitchCanvas.height = h;
+        retargetGlitchStrips(h);
       }
       glitchCtx.clearRect(0, 0, w, h);
       try {
         glitchCtx.drawImage(webcamCanvas, x, y, w, h, 0, 0, w, h);
       } catch (e) { return; }
 
-      // 수평 스트립 어긋나기 (글리치)
-      const numStrips = 5 + Math.floor(Math.random() * 10);
-      for (let i = 0; i < numStrips; i++) {
-        const sy = Math.floor(Math.random() * h);
-        const sh = 10 + Math.floor(Math.random() * 20);
-        const actualSh = Math.min(sh, h - sy);
-        if (actualSh <= 0) continue;
-        const dx = (Math.random() - 0.5) * 36;
-        webcamCtx.drawImage(glitchCanvas, 0, sy, w, actualSh, x + dx, y + sy, w, actualSh);
+      // 2.5초마다 새 타겟 위치 설정
+      const now = performance.now();
+      if (now - glitchRetargetTs > 2500) {
+        glitchRetargetTs = now;
+        retargetGlitchStrips(h);
       }
 
-      // 스미어: 낮은 투명도로 여러 번 어긋나게 그리기
+      // 스트립 오프셋을 타겟으로 천천히 lerp
+      glitchStrips.forEach(s => {
+        s.dy += (s.targetDy - s.dy) * s.speed;
+        s.dx += (s.targetDx - s.dx) * s.speed;
+      });
+
+      // 원본 얼굴 영역을 반투명 검정으로 덮어 원본 노출 줄이기
       webcamCtx.save();
-      for (let i = 1; i <= 3; i++) {
-        webcamCtx.globalAlpha = 0.13 / i;
-        const ox = (Math.random() - 0.5) * 50 * i;
-        const oy = (Math.random() - 0.5) * 40;
-        webcamCtx.drawImage(glitchCanvas, 0, 0, w, h, x + ox, y + oy, w, h);
-      }
+      webcamCtx.globalAlpha = 0.55;
+      webcamCtx.fillStyle = '#000';
+      webcamCtx.fillRect(x, y, w, h);
       webcamCtx.restore();
+
+      // 각 스트립을 수직으로 크게 어긋나게 배치
+      const stripH = Math.ceil(h / GLITCH_STRIP_COUNT);
+      for (let i = 0; i < GLITCH_STRIP_COUNT; i++) {
+        const sy = i * stripH;
+        const sh = Math.min(stripH, h - sy);
+        if (sh <= 0) continue;
+        const { dy, dx } = glitchStrips[i];
+        webcamCtx.drawImage(glitchCanvas, 0, sy, w, sh, x + dx, y + sy + dy, w, sh);
+      }
     }
 
     function getScreenPoint(lm, index) {
