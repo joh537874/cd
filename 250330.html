@@ -221,9 +221,21 @@
     let lastVisionTs = 0;
     let faceGlitchBox = null;
     let lastFaceTs = 0;
-    const FACE_INTERVAL = 200;
+    const FACE_INTERVAL = 500;
     const glitchCanvas = document.createElement('canvas');
     const glitchCtx = glitchCanvas.getContext('2d');
+    const GLITCH_STRIP_COUNT = 7;
+    const glitchStrips = Array.from({length: GLITCH_STRIP_COUNT}, () => ({
+      dy: 0, dx: 0, targetDy: 0, targetDx: 0,
+      speed: 0.018 + Math.random() * 0.016
+    }));
+    let glitchRetargetTs = 0;
+    function retargetGlitchStrips(h) {
+      glitchStrips.forEach(s => {
+        s.targetDy = (Math.random() - 0.5) * h * 1.1;
+        s.targetDx = (Math.random() - 0.5) * 22;
+      });
+    }
     const counterFx = { pulse: 1, visible: false };
     const stageTitles = [
       "Shell Currency",
@@ -337,10 +349,10 @@
       } catch (e) { return; }
 
       // 수평 스트립 어긋나기 (글리치)
-      const numStrips = 5 + Math.floor(Math.random() * 5);
+      const numStrips = 5 + Math.floor(Math.random() * 10);
       for (let i = 0; i < numStrips; i++) {
         const sy = Math.floor(Math.random() * h);
-        const sh = 4 + Math.floor(Math.random() * 20);
+        const sh = 10 + Math.floor(Math.random() * 20);
         const actualSh = Math.min(sh, h - sy);
         if (actualSh <= 0) continue;
         const dx = (Math.random() - 0.5) * 36;
@@ -351,8 +363,8 @@
       webcamCtx.save();
       for (let i = 1; i <= 3; i++) {
         webcamCtx.globalAlpha = 0.13 / i;
-        const ox = (Math.random() - 0.5) * 20 * i;
-        const oy = (Math.random() - 0.5) * 5;
+        const ox = (Math.random() - 0.5) * 50 * i;
+        const oy = (Math.random() - 0.5) * 40;
         webcamCtx.drawImage(glitchCanvas, 0, 0, w, h, x + ox, y + oy, w, h);
       }
       webcamCtx.restore();
@@ -1410,7 +1422,7 @@
     });
 
     const faceMesh = new FaceMesh({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}` });
-    faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.7, minTrackingConfidence: 0.6 });
+    faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
     faceMesh.onResults((results) => {
       // 모든 스테이지에서 얼굴 바운딩박스 추출 (글리치 효과용)
       if (results.multiFaceLandmarks && results.multiFaceLandmarks.length) {
@@ -1456,7 +1468,7 @@
       stage4.blink.faceCenter = { x: (1 - faceRef.x) * width, y: faceRef.y * height };
       stage4.blink.leftEyeCenter = { x: (1 - leftEyeRef.x) * width, y: leftEyeRef.y * height };
       stage4.blink.rightEyeCenter = { x: (1 - rightEyeRef.x) * width, y: rightEyeRef.y * height };
-      if (ear < 0.12 && now > stage4.blink.blinkCooldownUntil) {
+      if (ear < 0.17 && now > stage4.blink.blinkCooldownUntil) {
         stage4.blink.blinkCooldownUntil = now + 500;
         stage4.burst(stage4.nearest(stage4.blink.faceCenter).id);
         const amount = 1000 + Math.floor(Math.random() * 5) * 1000;
