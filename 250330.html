@@ -9,9 +9,9 @@
       --bg: #050505;
       --text: rgba(242, 242, 242, 0.94);
       --muted: rgba(176, 176, 176, 0.56);
-      --line: rgba(255, 255, 255, 0.08);
+      --line: rgba(255, 255, 255, 0.18);
       --gold: rgba(232, 232, 232, 0.92);
-      --cyan: rgba(196, 196, 196, 0.94);
+      --mono: "Courier New", Courier, monospace;
     }
 
     * {
@@ -26,15 +26,12 @@
       overflow: hidden;
       background: var(--bg);
       color: var(--text);
-      font-family: "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      font-family: var(--mono);
     }
 
     body {
       background:
-        radial-gradient(circle at 18% 20%, rgba(255, 255, 255, 0.03), transparent 24%),
-        radial-gradient(circle at 84% 18%, rgba(190, 190, 190, 0.05), transparent 28%),
-        radial-gradient(circle at 74% 82%, rgba(120, 120, 120, 0.05), transparent 30%),
-        linear-gradient(180deg, rgba(255,255,255,0.012), rgba(0,0,0,0.14)),
+        radial-gradient(ellipse at 50% 0%, rgba(80,80,80,0.18) 0%, transparent 55%),
         #050505;
     }
 
@@ -42,22 +39,28 @@
       display: none;
     }
 
-    #webcam-layer,
+    #webcam-layer {
+      display: none;
+    }
+
+    #webcam-preview {
+      position: fixed;
+      right: 18px;
+      top: 18px;
+      width: 160px;
+      height: 120px;
+      z-index: 6;
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      filter: saturate(0.2) contrast(1.1);
+      pointer-events: none;
+    }
+
     #scene-layer {
       position: fixed;
       inset: 0;
       width: 100%;
       height: 100%;
       pointer-events: none;
-    }
-
-    #webcam-layer {
-      z-index: 1;
-      opacity: 0.2;
-      filter: saturate(0.4) contrast(0.9) blur(1px);
-    }
-
-    #scene-layer {
       z-index: 2;
     }
 
@@ -76,14 +79,6 @@
       scroll-snap-align: start;
     }
 
-    .stage::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(180deg, rgba(0,0,0,0.1), rgba(0,0,0,0.16));
-      pointer-events: none;
-    }
-
     #hud {
       position: fixed;
       inset: 0;
@@ -93,84 +88,116 @@
 
     #panel {
       position: fixed;
-      left: 50%;
+      left: 18px;
       top: 18px;
-      transform: translateX(-50%);
-      text-shadow: 0 0 18px rgba(0, 0, 0, 0.52);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      padding: 7px 14px;
       pointer-events: none;
+      display: flex;
+      align-items: baseline;
+      gap: 0;
+    }
+
+    #panel-label {
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 400;
+      letter-spacing: 0.04em;
     }
 
     #panel-value {
-      display: block;
       color: var(--text);
-      font-size: 48pt;
-      font-weight: 700;
-      line-height: 1;
-      letter-spacing: -0.04em;
-      opacity: 0;
-      transform: translateX(-50%);
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 400;
+      letter-spacing: 0.04em;
+      opacity: 1;
+      transform: none;
     }
 
     #dock {
       position: fixed;
       right: 18px;
-      top: 50%;
-      transform: translateY(-50%);
+      bottom: 24px;
       z-index: 6;
       display: flex;
-      flex-direction: column;
-      gap: 10px;
-      padding: 12px 10px;
-      border-radius: 999px;
-      border: 1px solid var(--line);
-      background: rgba(10, 10, 12, 0.58);
-      backdrop-filter: blur(14px);
+      flex-direction: row;
+      gap: 8px;
+      padding: 0;
     }
 
     .dot {
-      width: 10px;
-      height: 10px;
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
       border: 0;
-      background: rgba(255,255,255,0.24);
+      background: rgba(255,255,255,0.22);
       cursor: pointer;
       transition: transform 160ms ease, background-color 160ms ease;
     }
 
     .dot.active {
-      background: var(--gold);
-      transform: scale(1.25);
+      background: rgba(255,255,255,0.85);
+      transform: scale(1.3);
     }
 
     #stage-title {
+      display: none;
+    }
+
+    #stage-text {
       position: fixed;
-      left: 18px;
-      top: 18px;
+      left: 40px;
+      top: 50%;
+      transform: translateY(-50%);
       z-index: 6;
-      color: rgba(242, 242, 242, 0.82);
-      font-size: 14px;
-      font-weight: 600;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
+      max-width: 300px;
       pointer-events: none;
-      text-shadow: 0 0 12px rgba(0, 0, 0, 0.45);
+    }
+
+    .stage-q {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 400;
+      letter-spacing: 0.08em;
+      color: rgba(200, 200, 200, 0.7);
+      margin-bottom: 18px;
+    }
+
+    .stage-name {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: var(--text);
+      margin-bottom: 14px;
+    }
+
+    .stage-desc {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 400;
+      line-height: 1.7;
+      color: rgba(200, 200, 200, 0.72);
+      margin-bottom: 10px;
     }
 
     @media (max-width: 720px) {
-      #stage-title {
-        left: 14px;
-        top: 14px;
-        font-size: 12px;
+      #stage-text {
+        left: 16px;
+        max-width: 220px;
       }
-
-      #panel {
-        top: 14px;
-      }
-
-      #dock {
+      #webcam-preview {
+        width: 100px;
+        height: 75px;
         right: 12px;
+        top: 12px;
       }
-
+      #panel {
+        left: 12px;
+        top: 12px;
+      }
     }
   </style>
 </head>
@@ -178,6 +205,7 @@
   <video id="video" playsinline autoplay muted></video>
   <canvas id="webcam-layer"></canvas>
   <canvas id="scene-layer"></canvas>
+  <canvas id="webcam-preview"></canvas>
 
   <div id="viewport">
     <section class="stage" data-index="0"></section>
@@ -188,12 +216,19 @@
 
   <div id="hud">
     <div id="panel">
-      <span id="panel-value">1</span>
+      <span id="panel-label">Cost&nbsp;&nbsp;:&nbsp;</span><span id="panel-value">0000$</span>
     </div>
   </div>
 
   <div id="dock"></div>
   <div id="stage-title">Shell Currency</div>
+
+  <div id="stage-text">
+    <div class="stage-q">HOW IS IT MONEY?</div>
+    <h2 class="stage-name">SHELL</h2>
+    <p class="stage-desc">Shells were mainly used for barter.<br>But then again, what you receive in<br>return may not be money either.</p>
+    <p class="stage-desc">Isn't it heavy to carry?<br>Be careful not to drop your shells.<br>You may not get as many goods as you want.</p>
+  </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
@@ -203,8 +238,10 @@
     const video = document.getElementById("video");
     const webcamCanvas = document.getElementById("webcam-layer");
     const sceneCanvas = document.getElementById("scene-layer");
+    const previewCanvas = document.getElementById("webcam-preview");
     const webcamCtx = webcamCanvas.getContext("2d");
     const sceneCtx = sceneCanvas.getContext("2d");
+    const previewCtx = previewCanvas.getContext("2d");
     const viewport = document.getElementById("viewport");
     const stages = [...document.querySelectorAll(".stage")];
     const dock = document.getElementById("dock");
@@ -219,23 +256,6 @@
     let handsBusy = false;
     let faceBusy = false;
     let lastVisionTs = 0;
-    let faceGlitchBox = null;
-    let lastFaceTs = 0;
-    const FACE_INTERVAL = 500;
-    const glitchCanvas = document.createElement('canvas');
-    const glitchCtx = glitchCanvas.getContext('2d');
-    const GLITCH_STRIP_COUNT = 7;
-    const glitchStrips = Array.from({length: GLITCH_STRIP_COUNT}, () => ({
-      dy: 0, dx: 0, targetDy: 0, targetDx: 0,
-      speed: 0.018 + Math.random() * 0.016
-    }));
-    let glitchRetargetTs = 0;
-    function retargetGlitchStrips(h) {
-      glitchStrips.forEach(s => {
-        s.targetDy = (Math.random() - 0.5) * h * 1.1;
-        s.targetDx = (Math.random() - 0.5) * 22;
-      });
-    }
     const counterFx = { pulse: 1, visible: false };
     const stageTitles = [
       "Shell Currency",
@@ -244,30 +264,60 @@
       "Virtual Asset"
     ];
 
-    function updateHud(animate = true) {
-      if (activeStage === 0) panelValueEl.textContent = stage1.count.toLocaleString("ko-KR");
-      if (activeStage === 1) panelValueEl.textContent = stage2.count.toLocaleString("ko-KR");
-      if (activeStage === 2) panelValueEl.textContent = stage3.total.toLocaleString("ko-KR");
-      if (activeStage === 3) panelValueEl.textContent = stage4.activity.toLocaleString("ko-KR");
-      if (animate) {
-        counterFx.pulse = 1;
-        counterFx.visible = true;
+    const stageTexts = [
+      {
+        q: "HOW IS IT MONEY?",
+        name: "SHELL",
+        descs: [
+          "Shells were mainly used for barter.\nBut then again, what you receive in\nreturn may not be money either.",
+          "Isn't it heavy to carry?\nBe careful not to drop your shells.\nYou may not get as many goods as you want."
+        ]
+      },
+      {
+        q: "HOW IS IT MONEY?",
+        name: "STANDARDIZED MONEY",
+        descs: [
+          "Coins and bills gave value a fixed form.\nStandardization made trade easier\nacross different regions and people.",
+          "Count it, store it, spend it.\nBut what happens when the paper\nis worth more than what backs it?"
+        ]
+      },
+      {
+        q: "HOW IS IT MONEY?",
+        name: "DIGITAL TRANSFER",
+        descs: [
+          "Money became a signal. Numbers\nflowing through wires, invisible\nyet universally accepted.",
+          "Touch to send. Tap to receive.\nThe physical bill is now a memory\nof a slower, heavier world."
+        ]
+      },
+      {
+        q: "HOW IS IT MONEY?",
+        name: "VIRTUAL ASSET",
+        descs: [
+          "Decentralized, encrypted, scarce.\nNo government backs it.\nConsensus is its only authority.",
+          "Blink and the value shifts.\nIs it money, or a bet on what\nmoney might become?"
+        ]
       }
+    ];
+
+    const stageTextEl = document.getElementById("stage-text");
+
+    function formatCost(n) {
+      const s = String(n);
+      const padded = s.padStart(4, "0");
+      return padded + "$";
+    }
+
+    function updateHud(animate = true) {
+      let val = 0;
+      if (activeStage === 0) val = stage1.count;
+      if (activeStage === 1) val = stage2.count;
+      if (activeStage === 2) val = stage3.total;
+      if (activeStage === 3) val = stage4.activity;
+      panelValueEl.textContent = formatCost(val);
     }
 
     function animateHudCounter() {
-      if (!counterFx.visible) {
-        panelValueEl.style.opacity = "0";
-        return;
-      }
-      const scale = 0.96 + counterFx.pulse * 0.04;
-      panelValueEl.style.opacity = String(Math.max(0, counterFx.pulse));
-      panelValueEl.style.transform = `translateX(-50%) scale(${scale})`;
-      counterFx.pulse *= 0.93;
-      if (counterFx.pulse < 0.04) {
-        counterFx.visible = false;
-        panelValueEl.style.opacity = "0";
-      }
+      // no-op: value always visible
     }
 
     stages.forEach((stage, index) => {
@@ -286,12 +336,16 @@
       stages.forEach((stage, i) => stage._dot.classList.toggle("active", i === index));
       stageTitleEl.textContent = stageTitles[index];
       updateHud(false);
-      counterFx.visible = false;
-      panelValueEl.style.opacity = "0";
       stage1.hand.visible = false;
       stage2.pinch.visible = false;
       stage3.fingertips.forEach((s) => s.visible = false);
       stage4.blink.visible = false;
+      const t = stageTexts[index];
+      stageTextEl.innerHTML = `
+        <div class="stage-q">${t.q}</div>
+        <h2 class="stage-name">${t.name}</h2>
+        ${t.descs.map(d => `<p class="stage-desc">${d.replace(/\n/g, "<br>")}</p>`).join("")}
+      `;
     }
 
     const observer = new IntersectionObserver((entries) => {
@@ -307,8 +361,10 @@
     function resize() {
       width = window.innerWidth;
       height = window.innerHeight;
-      webcamCanvas.width = sceneCanvas.width = width;
-      webcamCanvas.height = sceneCanvas.height = height;
+      sceneCanvas.width = width;
+      sceneCanvas.height = height;
+      previewCanvas.width = previewCanvas.offsetWidth || 160;
+      previewCanvas.height = previewCanvas.offsetHeight || 120;
       stage1.resize();
       stage2.resize();
       stage3.resize();
@@ -324,60 +380,14 @@
     }
 
     function drawWebcam() {
-      webcamCtx.clearRect(0, 0, width, height);
       if (!videoReady || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
-      webcamCtx.save();
-      webcamCtx.scale(-1, 1);
-      webcamCtx.drawImage(video, -width, 0, width, height);
-      webcamCtx.restore();
-      applyFaceGlitch();
-    }
-
-    function applyFaceGlitch() {
-      if (!faceGlitchBox) return;
-      const { x, y, w, h } = faceGlitchBox;
-      if (w <= 0 || h <= 0) return;
-
-      // 얼굴 영역을 오프스크린 캔버스에 복사
-      if (glitchCanvas.width !== w || glitchCanvas.height !== h) {
-        glitchCanvas.width = w;
-        glitchCanvas.height = h;
-        retargetGlitchStrips(h);
-      }
-      glitchCtx.clearRect(0, 0, w, h);
-      try {
-        glitchCtx.drawImage(webcamCanvas, x, y, w, h, 0, 0, w, h);
-      } catch (e) { return; }
-
-      // 2.5초마다 새 타겟 위치 설정
-      const now = performance.now();
-      if (now - glitchRetargetTs > 2500) {
-        glitchRetargetTs = now;
-        retargetGlitchStrips(h);
-      }
-
-      // 스트립 오프셋을 타겟으로 천천히 lerp
-      glitchStrips.forEach(s => {
-        s.dy += (s.targetDy - s.dy) * s.speed;
-        s.dx += (s.targetDx - s.dx) * s.speed;
-      });
-
-      // 원본 얼굴 영역을 반투명 검정으로 덮어 원본 노출 줄이기
-      webcamCtx.save();
-      webcamCtx.globalAlpha = 0.55;
-      webcamCtx.fillStyle = '#000';
-      webcamCtx.fillRect(x, y, w, h);
-      webcamCtx.restore();
-
-      // 각 스트립을 수직으로 크게 어긋나게 배치
-      const stripH = Math.ceil(h / GLITCH_STRIP_COUNT);
-      for (let i = 0; i < GLITCH_STRIP_COUNT; i++) {
-        const sy = i * stripH;
-        const sh = Math.min(stripH, h - sy);
-        if (sh <= 0) continue;
-        const { dy, dx } = glitchStrips[i];
-        webcamCtx.drawImage(glitchCanvas, 0, sy, w, sh, x + dx, y + sy + dy, w, sh);
-      }
+      const pw = previewCanvas.width;
+      const ph = previewCanvas.height;
+      previewCtx.clearRect(0, 0, pw, ph);
+      previewCtx.save();
+      previewCtx.scale(-1, 1);
+      previewCtx.drawImage(video, -pw, 0, pw, ph);
+      previewCtx.restore();
     }
 
     function getScreenPoint(lm, index) {
@@ -436,7 +446,7 @@
       grabRadius: 150,
       targetX: 0,
       targetY: 0,
-      hand: { visible: false, fist: false, point: { x: width / 2, y: height / 2 }, velocity: { x: 0, y: 0 } },
+      hand: { visible: false, fist: false, point: { x: width / 2, y: height / 2 }, velocity: { x: 0, y: 0 }, landmarks: null },
       resize() {
         if (!this.shells.length) this.init();
         this.bounds = { w: width, h: height };
@@ -502,25 +512,47 @@
       },
       draw(ctx) {
         ctx.save();
-        if (this.hand.visible && this.hand.fist) {
-          ctx.beginPath();
-          ctx.arc(this.hand.point.x, this.hand.point.y, 220, 0, Math.PI * 2);
-          ctx.strokeStyle = "rgba(214,214,214,0.14)";
-          ctx.stroke();
-        }
+
         for (const shell of this.shells) {
           if (shell.spent) continue;
           ctx.save();
           ctx.translate(shell.x, shell.y);
+          ctx.filter = "grayscale(1) contrast(1.1)";
           ctx.drawImage(shell.img, -shell.size * 0.62, -shell.size * 0.5, shell.size * 1.24, shell.size);
+          ctx.filter = "none";
           ctx.restore();
         }
-        if (this.hand.visible) {
-          ctx.beginPath();
-          ctx.arc(this.hand.point.x, this.hand.point.y, this.hand.fist ? 10 : 18, 0, Math.PI * 2);
-          ctx.fillStyle = this.hand.fist ? "rgba(242, 242, 242, 0.92)" : "rgba(255,255,255,0.26)";
-          ctx.fill();
+
+        if (this.hand.visible && this.hand.landmarks) {
+          const lm = this.hand.landmarks;
+          // hand skeleton edges (MediaPipe Hands connections)
+          const edges = [
+            [0,1],[1,2],[2,3],[3,4],
+            [0,5],[5,6],[6,7],[7,8],
+            [0,9],[9,10],[10,11],[11,12],
+            [0,13],[13,14],[14,15],[15,16],
+            [0,17],[17,18],[18,19],[19,20],
+            [5,9],[9,13],[13,17]
+          ];
+          const edgeAlpha = this.hand.fist ? 0.55 : 0.32;
+          ctx.strokeStyle = `rgba(210,210,210,${edgeAlpha})`;
+          ctx.lineWidth = 1;
+          for (const [a, b] of edges) {
+            ctx.beginPath();
+            ctx.moveTo(lm[a].x, lm[a].y);
+            ctx.lineTo(lm[b].x, lm[b].y);
+            ctx.stroke();
+          }
+          const nodeAlpha = this.hand.fist ? 0.9 : 0.55;
+          for (let i = 0; i < lm.length; i++) {
+            const r = (i === 0) ? 5 : ([4,8,12,16,20].includes(i) ? 4 : 2.5);
+            ctx.beginPath();
+            ctx.arc(lm[i].x, lm[i].y, r, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(230,230,230,${nodeAlpha})`;
+            ctx.fill();
+          }
         }
+
         ctx.restore();
       }
     };
@@ -1374,6 +1406,7 @@
         stage1.hand.fist = curled >= 2 || (curled >= 1 && thumbIndex < 0.16);
         stage1.hand.point = { x: prev.x + (next.x - prev.x) * 0.4, y: prev.y + (next.y - prev.y) * 0.4 };
         stage1.hand.velocity = { x: stage1.hand.point.x - prev.x, y: stage1.hand.point.y - prev.y };
+        stage1.hand.landmarks = lm.map(p => ({ x: (1 - p.x) * width, y: p.y * height }));
       } else if (activeStage === 1) {
         if (!results.multiHandLandmarks || !results.multiHandLandmarks.length) {
           if (stage2.hold.item) stage2.releaseHold(performance.now());
@@ -1434,29 +1467,6 @@
     const faceMesh = new FaceMesh({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}` });
     faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
     faceMesh.onResults((results) => {
-      // 모든 스테이지에서 얼굴 바운딩박스 추출 (글리치 효과용)
-      if (results.multiFaceLandmarks && results.multiFaceLandmarks.length) {
-        const lm0 = results.multiFaceLandmarks[0];
-        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-        for (const pt of lm0) {
-          const sx = (1 - pt.x) * width;
-          const sy = pt.y * height;
-          if (sx < minX) minX = sx;
-          if (sx > maxX) maxX = sx;
-          if (sy < minY) minY = sy;
-          if (sy > maxY) maxY = sy;
-        }
-        const pad = 24;
-        faceGlitchBox = {
-          x: Math.max(0, Math.floor(minX - pad)),
-          y: Math.max(0, Math.floor(minY - pad)),
-          w: Math.min(width - Math.max(0, Math.floor(minX - pad)), Math.ceil(maxX - minX + pad * 2)),
-          h: Math.min(height - Math.max(0, Math.floor(minY - pad)), Math.ceil(maxY - minY + pad * 2))
-        };
-      } else {
-        faceGlitchBox = null;
-      }
-
       if (activeStage !== 3) return;
       const now = performance.now();
       if (!results.multiFaceLandmarks || !results.multiFaceLandmarks.length) {
@@ -1510,12 +1520,6 @@
         faceBusy = true;
         try { await faceMesh.send({ image: video }); } finally { faceBusy = false; }
       } else {
-        // 얼굴 글리치용: hands보다 낮은 주기로 순차 실행 (충돌 방지)
-        if (!faceBusy && ts - lastFaceTs >= FACE_INTERVAL) {
-          lastFaceTs = ts;
-          faceBusy = true;
-          try { await faceMesh.send({ image: video }); } finally { faceBusy = false; }
-        }
         if (handsBusy) return;
         handsBusy = true;
         try { await hands.send({ image: video }); } finally { handsBusy = false; }
