@@ -6,11 +6,11 @@
   <title>화폐 진화 단일 앱</title>
   <style>
     :root {
-      --bg: #050505;
+      --bg: #111111;
       --text: rgba(242, 242, 242, 0.94);
       --muted: rgba(176, 176, 176, 0.56);
       --line: rgba(255, 255, 255, 0.18);
-      --gold: rgba(232, 232, 232, 0.92);
+      --gold: rgb(232, 232, 232);
       --mono: "Courier New", Courier, monospace;
     }
 
@@ -32,7 +32,7 @@
     body {
       background:
         radial-gradient(ellipse at 50% 0%, rgba(80,80,80,0.18) 0%, transparent 55%),
-        #050505;
+        #121212;
     }
 
     #video {
@@ -88,10 +88,10 @@
 
     #panel {
       position: fixed;
-      left: 18px;
-      top: 18px;
-      border: 1px solid rgba(255, 255, 255, 0.6);
-      padding: 7px 14px;
+      left: 40px;
+      top: 40px;
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      padding: 6px 12px;
       pointer-events: none;
       display: flex;
       align-items: baseline;
@@ -101,7 +101,7 @@
     #panel-label {
       color: var(--text);
       font-family: var(--mono);
-      font-size: 13px;
+      font-size: 15px;
       font-weight: 400;
       letter-spacing: 0.04em;
     }
@@ -109,7 +109,7 @@
     #panel-value {
       color: var(--text);
       font-family: var(--mono);
-      font-size: 13px;
+      font-size: 15px;
       font-weight: 400;
       letter-spacing: 0.04em;
       opacity: 1;
@@ -153,40 +153,71 @@
       transform: translateY(-50%);
       z-index: 6;
       max-width: 300px;
-      pointer-events: none;
+      pointer-events: none; 
     }
 
     .stage-q {
       font-family: var(--mono);
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 400;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.04em;
       color: rgba(200, 200, 200, 0.7);
-      margin-bottom: 18px;
+      margin-bottom: 16px;
     }
 
     .stage-name {
       font-family: var(--mono);
-      font-size: 13px;
+      font-size: 14px;
       font-weight: 700;
       letter-spacing: 0.04em;
       color: var(--text);
-      margin-bottom: 14px;
+      margin-bottom: 12px;
     }
 
     .stage-desc {
       font-family: var(--mono);
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 400;
-      line-height: 1.7;
-      color: rgba(200, 200, 200, 0.72);
-      margin-bottom: 10px;
+      line-height: 1.4;
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 8px;
+      white-space: pre-line;
+    }
+
+    .dud {
+      color: rgba(165, 165, 165, 0.52);
+    }
+
+    #stage-text.is-intro {
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      max-width: 90vw;
+    }
+
+    #stage-text.is-intro .stage-q {
+      color: #ffffff;
+      opacity: 1;
+      font-size: 24px;
+    }
+
+    #stage-text.is-intro .stage-name,
+    #stage-text.is-intro .stage-desc {
+      display: none;
     }
 
     @media (max-width: 720px) {
       #stage-text {
         left: 16px;
-        max-width: 220px;
+        max-width: 260px;
+      }
+      #stage-text .stage-q,
+      #stage-text .stage-name {
+        font-size: 12px;
+      }
+      #stage-text .stage-desc {
+        font-size: 12px;
       }
       #webcam-preview {
         width: 100px;
@@ -197,7 +228,39 @@
       #panel {
         left: 12px;
         top: 12px;
+        font-size: 14px;
       }
+      #panel-label, #panel-value {
+        font-size: 14px;
+      }
+    }
+
+    #stage4-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      overflow: hidden;
+      opacity: 0;
+      transition: opacity 420ms ease;
+    }
+
+    #stage4-overlay img {
+      position: absolute;
+    }
+
+    #stage4-overlay.active {
+      opacity: 1;
+    }
+
+    #panel.inverted {
+      background: #ffffff;
+      border-color: rgba(255, 255, 255, 0.9);
+    }
+
+    #panel.inverted #panel-label,
+    #panel.inverted #panel-value {
+      color: #000000;
     }
   </style>
 </head>
@@ -212,12 +275,67 @@
     <section class="stage" data-index="1"></section>
     <section class="stage" data-index="2"></section>
     <section class="stage" data-index="3"></section>
+    <section class="stage" data-index="4"></section>
   </div>
 
   <div id="hud">
     <div id="panel">
       <span id="panel-label">Cost&nbsp;&nbsp;:&nbsp;</span><span id="panel-value">0000$</span>
     </div>
+  </div>
+
+  <!-- Stage 4 Overlay (Step4_2 design) -->
+  <div id="stage4-overlay">
+    <!-- Ellipse 15 (top glow) -->
+    <img style="left:27.76%;top:-28.7%;width:43.6%;opacity:0.55;" src="https://www.figma.com/api/mcp/asset/211549e1-9865-4e2f-bc3f-b3422b184cb5" alt="" />
+    <!-- Ellipse 16 (left glow, rotated) -->
+    <div style="position:absolute;left:-17.86%;top:8.89%;width:33.33%;height:81.81%;display:flex;align-items:center;justify-content:center;">
+      <img style="position:static;flex:none;transform:rotate(84.99deg);width:43.6vw;opacity:0.45;" src="https://www.figma.com/api/mcp/asset/ded046e8-2f26-4bc7-9645-9759cf3aaff9" alt="" />
+    </div>
+    <!-- Ellipse 17 (bottom glow) -->
+    <img style="left:29.27%;top:80.83%;width:43.6%;opacity:0.45;" src="https://www.figma.com/api/mcp/asset/2685136f-4032-48e4-8eb5-319569598e4a" alt="" />
+    <!-- Ellipse 18 (right glow, rotated 90) -->
+    <div style="position:absolute;left:90.1%;top:13.24%;width:29.64%;height:77.5%;display:flex;align-items:center;justify-content:center;">
+      <img style="position:static;flex:none;transform:rotate(90deg);width:43.6vw;opacity:0.45;" src="https://www.figma.com/api/mcp/asset/a0310a85-bbdc-47d2-9e89-87a9fe84f661" alt="" />
+    </div>
+    <!-- Vector 6 radiating lines instance 1 -->
+    <img style="left:26.99%;top:0.51%;width:58.41%;opacity:0.65;" src="https://www.figma.com/api/mcp/asset/747f0ba8-5b70-48ad-8bd4-e704d5ea1834" alt="" />
+    <!-- Vector 6 instance 2 (offset) -->
+    <img style="left:29.63%;top:1.94%;width:58.41%;opacity:0.45;" src="https://www.figma.com/api/mcp/asset/747f0ba8-5b70-48ad-8bd4-e704d5ea1834" alt="" />
+    <!-- Vector 7 (rotate -30deg) -->
+    <div style="position:absolute;left:-1.09%;top:-44.35%;width:102.34%;height:177.04%;display:flex;align-items:center;justify-content:center;">
+      <img style="position:static;flex:none;transform:rotate(-30deg);width:77.67vw;opacity:0.55;" src="https://www.figma.com/api/mcp/asset/228717b5-2a60-4c9e-ab5c-a2783180045e" alt="" />
+    </div>
+    <!-- Vector 8 (rotate -71.11deg) -->
+    <div style="position:absolute;left:-0.99%;top:-48.24%;width:99.79%;height:186.46%;display:flex;align-items:center;justify-content:center;">
+      <img style="position:static;flex:none;transform:rotate(-71.11deg);width:84.68vw;opacity:0.45;" src="https://www.figma.com/api/mcp/asset/65981bda-31a1-40ab-a9b6-e5d7d5ca84ef" alt="" />
+    </div>
+    <!-- Vector 13 (rotate -71.11deg) -->
+    <div style="position:absolute;left:-15.31%;top:-36.76%;width:91.09%;height:169.71%;display:flex;align-items:center;justify-content:center;">
+      <img style="position:static;flex:none;transform:rotate(-71.11deg);width:76.97vw;opacity:0.4;" src="https://www.figma.com/api/mcp/asset/9feb2897-2601-42b7-a25d-8c6281c7d529" alt="" />
+    </div>
+    <!-- Vector 14 (rotate -15deg) -->
+    <div style="position:absolute;left:7.29%;top:-53.33%;width:92.44%;height:155.51%;display:flex;align-items:center;justify-content:center;">
+      <img style="position:static;flex:none;transform:rotate(-15deg);width:76.97vw;opacity:0.4;" src="https://www.figma.com/api/mcp/asset/dda4be90-ab5f-4fff-b1c3-7d903da85b35" alt="" />
+    </div>
+    <!-- Vector 15 (rotate 33.89deg) -->
+    <div style="position:absolute;left:6.29%;top:-26.53%;width:102.89%;height:179.5%;display:flex;align-items:center;justify-content:center;">
+      <img style="position:static;flex:none;transform:rotate(33.89deg);width:76.97vw;opacity:0.4;" src="https://www.figma.com/api/mcp/asset/ae1374a4-8cfe-4ce1-ba1b-61e95bd42a82" alt="" />
+    </div>
+    <!-- Vector 16 (rotate 67.83deg) -->
+    <div style="position:absolute;left:5%;top:-26.67%;width:93.81%;height:173.62%;display:flex;align-items:center;justify-content:center;">
+      <img style="position:static;flex:none;transform:rotate(67.83deg);width:76.97vw;opacity:0.4;" src="https://www.figma.com/api/mcp/asset/b62cff85-b719-4f08-a2cd-e7612b9056b9" alt="" />
+    </div>
+    <!-- Vector 11 (rotate -68.91deg) -->
+    <div style="position:absolute;left:-0.57%;top:-52.96%;width:101.84%;height:189.39%;display:flex;align-items:center;justify-content:center;">
+      <img style="position:static;flex:none;transform:rotate(-68.91deg);width:84.68vw;opacity:0.4;" src="https://www.figma.com/api/mcp/asset/b9099269-9f6c-437c-b6e2-c4eea3722e5f" alt="" />
+    </div>
+    <!-- Vector 9 (rotate -88.37deg) -->
+    <div style="position:absolute;left:9.48%;top:-33.61%;width:78.87%;height:154.33%;display:flex;align-items:center;justify-content:center;">
+      <img style="position:static;flex:none;transform:rotate(-88.37deg);width:84.68vw;opacity:0.4;" src="https://www.figma.com/api/mcp/asset/b22600d6-ea9e-4187-b93b-cd405fc524ac" alt="" />
+    </div>
+    <!-- Center square -->
+    <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:43px;height:43px;background:#d9d9d9;border:1px solid rgba(255,255,255,0.5);"></div>
   </div>
 
   <div id="dock"></div>
@@ -258,6 +376,7 @@
     let lastVisionTs = 0;
     const counterFx = { pulse: 1, visible: false };
     const stageTitles = [
+      "",
       "Shell Currency",
       "Standardized Money",
       "Digital Transfer",
@@ -265,6 +384,11 @@
     ];
 
     const stageTexts = [
+      {
+        q: "HOW IS IT MONEY?",
+        name: "",
+        descs: []
+      },
       {
         q: "HOW IS IT MONEY?",
         name: "SHELL",
@@ -300,6 +424,333 @@
     ];
 
     const stageTextEl = document.getElementById("stage-text");
+    const stage4OverlayEl = document.getElementById("stage4-overlay");
+    const transitionCanvas = document.createElement("canvas");
+    const transitionCtx = transitionCanvas.getContext("2d", { willReadFrequently: true });
+    const transitionTargetCanvas = document.createElement("canvas");
+    const transitionTargetCtx = transitionTargetCanvas.getContext("2d", { willReadFrequently: true });
+    const textScrambleChars = "!<>-_\\/[]{}=+*^?#________";
+    let stageTextRun = 0;
+    const stageTransition = {
+      active: false,
+      fromIndex: 0,
+      toIndex: 0,
+      startedAt: 0,
+      duration: 1280,
+      particles: []
+    };
+
+    function clamp01(v) {
+      return Math.max(0, Math.min(1, v));
+    }
+
+    function lerp(a, b, t) {
+      return a + (b - a) * t;
+    }
+
+    function easeOutCubic(t) {
+      return 1 - Math.pow(1 - t, 3);
+    }
+
+    function easeInOutCubic(t) {
+      return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    }
+
+    function randomScrambleChar() {
+      return textScrambleChars[Math.floor(Math.random() * textScrambleChars.length)];
+    }
+
+    function wait(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    function scrambleText(el, nextText, runId) {
+      const previousText = el.textContent || "";
+      const length = Math.max(previousText.length, nextText.length);
+      const queue = [];
+      for (let i = 0; i < length; i++) {
+        queue.push({
+          from: previousText[i] || "",
+          to: nextText[i] || "",
+          start: Math.floor(Math.random() * 24),
+          end: 28 + Math.floor(Math.random() * 28),
+          char: ""
+        });
+      }
+      let frame = 0;
+      return new Promise((resolve) => {
+        function update() {
+          if (runId !== stageTextRun) {
+            resolve();
+            return;
+          }
+          let output = "";
+          let done = 0;
+          for (const item of queue) {
+            if (frame >= item.end) {
+              done += 1;
+              output += item.to;
+            } else if (frame >= item.start) {
+              if (!item.char || Math.random() < 0.28) item.char = randomScrambleChar();
+              output += `<span class="dud">${item.char}</span>`;
+            } else {
+              output += item.from;
+            }
+          }
+          el.innerHTML = output;
+          if (done === queue.length) {
+            el.textContent = nextText;
+            resolve();
+            return;
+          }
+          frame += 1;
+          requestAnimationFrame(update);
+        }
+        update();
+      });
+    }
+
+    function mountStageText(index) {
+      const t = stageTexts[index];
+      stageTextEl.innerHTML = `
+        <div class="stage-q"></div>
+        <h2 class="stage-name"></h2>
+        ${t.descs.map(() => `<p class="stage-desc"></p>`).join("")}
+      `;
+      return {
+        qEl: stageTextEl.querySelector(".stage-q"),
+        nameEl: stageTextEl.querySelector(".stage-name"),
+        descEls: [...stageTextEl.querySelectorAll(".stage-desc")]
+      };
+    }
+
+    function setStageText(index, immediate = false) {
+      const t = stageTexts[index];
+      const { qEl, nameEl, descEls } = mountStageText(index);
+      if (immediate) {
+        qEl.textContent = t.q;
+        nameEl.textContent = t.name;
+        descEls.forEach((el, i) => { el.innerHTML = t.descs[i].replace(/\n/g, "<br>"); });
+        return;
+      }
+      const runId = ++stageTextRun;
+      (async () => {
+        await scrambleText(qEl, t.q, runId);
+        if (runId !== stageTextRun) return;
+        if (t.name && t.name.length > 0) {
+          await wait(80);
+          const titleJob = scrambleText(nameEl, t.name, runId);
+          const descJobs = descEls.map((el, i) => (async () => {
+            await wait(150 + i * 150);
+            if (runId !== stageTextRun) return;
+            await scrambleText(el, t.descs[i], runId);
+            if (runId !== stageTextRun) return;
+            el.innerHTML = t.descs[i].replace(/\n/g, "<br>");
+          })());
+          await Promise.all([titleJob, ...descJobs]);
+        }
+      })();
+    }
+
+    function renderStageByIndex(targetCtx, index) {
+      targetCtx.save();
+      targetCtx.setTransform(1, 0, 0, 1, 0, 0);
+      targetCtx.clearRect(0, 0, width, height);
+      if (index === 0) stage0.draw(targetCtx);
+      if (index === 1) stage1.draw(targetCtx);
+      if (index === 2) stage2.draw(targetCtx);
+      if (index === 3) stage3.draw(targetCtx);
+      if (index === 4) stage4.draw(targetCtx);
+      targetCtx.restore();
+    }
+
+    function createFallbackPoint(mode, i, total) {
+      const ratio = i / Math.max(1, total - 1);
+      const angle = ratio * Math.PI * 2;
+      if (mode === "center") {
+        return {
+          x: width * 0.5 + Math.cos(angle) * width * 0.06,
+          y: height * 0.5 + Math.sin(angle) * height * 0.06,
+          alpha: 0.45,
+          size: 1.2
+        };
+      }
+      return {
+        x: Math.random() * width,
+        y: Math.random() * height,
+        alpha: 0.18 + Math.random() * 0.26,
+        size: 0.8 + Math.random() * 1.4
+      };
+    }
+
+    function buildStageFieldPoints(index, count) {
+      const points = [];
+      for (let i = 0; i < count; i++) {
+        const ratio = i / Math.max(1, count - 1);
+        const angle = ratio * Math.PI * 2;
+        if (index === 0) {
+          const ring = 40 + (i % 12) * 8 + Math.random() * 18;
+          points.push({
+            x: width * 0.5 + Math.cos(angle + i * 0.16) * ring,
+            y: height * 0.72 + Math.sin(angle * 1.2) * ring * 0.32 + (Math.random() - 0.5) * 36,
+            alpha: 0.22 + Math.random() * 0.22,
+            size: 1 + Math.random() * 1.8
+          });
+          continue;
+        }
+        if (index === 1) {
+          points.push({
+            x: width * 0.26 + (i % 12) * (width * 0.04) + (Math.random() - 0.5) * 14,
+            y: height * 0.74 + Math.floor(i / 12) * 18 + (Math.random() - 0.5) * 10,
+            alpha: 0.2 + Math.random() * 0.2,
+            size: 1 + Math.random() * 1.6
+          });
+          continue;
+        }
+        if (index === 2) {
+          points.push({
+            x: width * (0.26 + ((i % 10) / 9) * 0.48) + (Math.random() - 0.5) * 18,
+            y: height * (0.24 + ratio * 0.45) + Math.sin(angle * 3) * 16,
+            alpha: 0.18 + Math.random() * 0.2,
+            size: 0.9 + Math.random() * 1.4
+          });
+          continue;
+        }
+        points.push({
+          x: width * 0.5 + Math.cos(angle) * (36 + (i % 10) * 8) + (Math.random() - 0.5) * 12,
+          y: height * 0.5 + Math.sin(angle * 1.1) * (30 + (i % 8) * 10) + (Math.random() - 0.5) * 12,
+          alpha: 0.2 + Math.random() * 0.24,
+          size: 0.9 + Math.random() * 1.6
+        });
+      }
+      return points;
+    }
+
+    function buildTransitionParticles(fromIndex, toIndex) {
+      const count = 110;
+      const fromPoints = buildStageFieldPoints(fromIndex, count);
+      const toPoints = buildStageFieldPoints(toIndex, count);
+      const particles = [];
+      for (let i = 0; i < count; i++) {
+        const source = fromPoints[i] || createFallbackPoint("scatter", i, count);
+        const target = toPoints[i] || createFallbackPoint("center", i, count);
+        const typeRoll = Math.random();
+        particles.push({
+          x: source.x,
+          y: source.y,
+          tx: target.x,
+          ty: target.y,
+          vx: (Math.random() - 0.5) * 4,
+          vy: (Math.random() - 0.5) * 4,
+          size: Math.max(source.size || 1, target.size || 1),
+          alpha: Math.max(source.alpha || 0.18, target.alpha || 0.18),
+          type: typeRoll < 0.1 ? "cross" : (typeRoll < 0.16 ? "dash" : "dot"),
+          angle: Math.random() * Math.PI,
+          delay: Math.floor(Math.random() * 20)
+        });
+      }
+      return particles;
+    }
+
+    function beginStageMorph(fromIndex, toIndex) {
+      transitionCanvas.width = width;
+      transitionCanvas.height = height;
+      transitionTargetCanvas.width = width;
+      transitionTargetCanvas.height = height;
+      renderStageByIndex(transitionCtx, fromIndex);
+      renderStageByIndex(transitionTargetCtx, toIndex);
+      stageTransition.active = true;
+      stageTransition.fromIndex = fromIndex;
+      stageTransition.toIndex = toIndex;
+      stageTransition.startedAt = performance.now();
+      stageTransition.particles = buildTransitionParticles(fromIndex, toIndex);
+    }
+
+    function drawTransitionParticle(ctx, particle) {
+      const alpha = clamp01(particle.alpha);
+      if (alpha < 0.02) return;
+      ctx.strokeStyle = `rgba(255,255,255,${alpha.toFixed(3)})`;
+      ctx.fillStyle = `rgba(255,255,255,${alpha.toFixed(3)})`;
+      if (particle.type === "cross") {
+        const s = particle.size * 2.2;
+        ctx.lineWidth = 0.7;
+        ctx.beginPath();
+        ctx.moveTo(particle.x - s, particle.y);
+        ctx.lineTo(particle.x + s, particle.y);
+        ctx.moveTo(particle.x, particle.y - s);
+        ctx.lineTo(particle.x, particle.y + s);
+        ctx.stroke();
+        return;
+      }
+      if (particle.type === "dash") {
+        const s = particle.size * 2.8;
+        const ca = Math.cos(particle.angle);
+        const sa = Math.sin(particle.angle);
+        ctx.lineWidth = 0.75;
+        ctx.beginPath();
+        ctx.moveTo(particle.x - ca * s, particle.y - sa * s);
+        ctx.lineTo(particle.x + ca * s, particle.y + sa * s);
+        ctx.stroke();
+        return;
+      }
+      ctx.beginPath();
+      ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawStageMorph(ctx, ts) {
+      if (!stageTransition.active) return;
+      const elapsed = ts - stageTransition.startedAt;
+      const t = clamp01(elapsed / stageTransition.duration);
+      const fadePrev = 1 - easeInOutCubic(clamp01(elapsed / 620));
+      const fadeNext = easeInOutCubic(clamp01((elapsed - 120) / 920));
+      let movingCount = 0;
+
+      ctx.save();
+      ctx.globalAlpha = fadeNext;
+      ctx.drawImage(transitionTargetCanvas, 0, 0, width, height);
+      ctx.restore();
+
+      if (fadePrev > 0) {
+        ctx.save();
+        ctx.globalAlpha = fadePrev * 0.92;
+        ctx.drawImage(transitionCanvas, 0, 0, width, height);
+        ctx.restore();
+      }
+
+      ctx.save();
+      ctx.fillStyle = `rgba(0,0,0,${(0.16 * (1 - fadeNext)).toFixed(3)})`;
+      ctx.fillRect(0, 0, width, height);
+      ctx.restore();
+
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      for (const particle of stageTransition.particles) {
+        if (particle.delay > 0) {
+          particle.delay -= 1;
+          drawTransitionParticle(ctx, particle);
+          movingCount += 1;
+          continue;
+        }
+        particle.vx += (particle.tx - particle.x) * 0.024;
+        particle.vy += (particle.ty - particle.y) * 0.024;
+        particle.vx *= 0.86;
+        particle.vy *= 0.86;
+        particle.x += particle.vx;
+        particle.y += particle.vy;
+        particle.alpha *= 0.997;
+        drawTransitionParticle(ctx, particle);
+        const dist = Math.hypot(particle.tx - particle.x, particle.ty - particle.y);
+        const speed = Math.hypot(particle.vx, particle.vy);
+        if (dist > 1.2 || speed > 0.12) movingCount += 1;
+      }
+      ctx.restore();
+
+      if (t >= 1 && movingCount < stageTransition.particles.length * 0.12) {
+        stageTransition.active = false;
+        stageTransition.particles.length = 0;
+      }
+    }
 
     function formatCost(n) {
       const s = String(n);
@@ -307,13 +758,24 @@
       return padded + "$";
     }
 
+    const panelEl = document.getElementById("panel");
+    let panelInvertTimer = null;
+    let hudPulse = 0;
+
     function updateHud(animate = true) {
       let val = 0;
-      if (activeStage === 0) val = stage1.count;
-      if (activeStage === 1) val = stage2.count;
-      if (activeStage === 2) val = stage3.total;
-      if (activeStage === 3) val = stage4.activity;
-      panelValueEl.textContent = formatCost(val);
+      if (activeStage === 1) val = stage1.count;
+      if (activeStage === 2) val = stage2.count;
+      if (activeStage === 3) val = stage3.total;
+      if (activeStage === 4) val = stage4.activity;
+      const newText = formatCost(val);
+      if (newText !== panelValueEl.textContent) {
+        panelEl.classList.add("inverted");
+        clearTimeout(panelInvertTimer);
+        panelInvertTimer = setTimeout(() => panelEl.classList.remove("inverted"), 350);
+        hudPulse = 1;
+      }
+      panelValueEl.textContent = newText;
     }
 
     function animateHudCounter() {
@@ -325,27 +787,44 @@
       dot.className = "dot";
       dot.type = "button";
       dot.addEventListener("click", () => {
-        stages[index].scrollIntoView({ behavior: "smooth", block: "start" });
+        goToStage(index);
       });
       dock.appendChild(dot);
       stage._dot = dot;
     });
 
-    function activateStage(index) {
+    function goToStage(index, { immediate = false, syncScroll = true } = {}) {
+      const nextIndex = clamp(index, 0, stages.length - 1);
+      activateStage(nextIndex, { immediate });
+      if (syncScroll) {
+        viewport.scrollTo({ top: nextIndex * height, behavior: immediate ? "auto" : "smooth" });
+      }
+    }
+
+    function activateStage(index, { immediate = false } = {}) {
+      if (index === activeStage && !immediate) return;
+      const previousStage = activeStage;
+      if (!immediate) beginStageMorph(previousStage, index);
       activeStage = index;
       stages.forEach((stage, i) => stage._dot.classList.toggle("active", i === index));
       stageTitleEl.textContent = stageTitles[index];
+      panelEl.style.display = index === 0 ? 'none' : 'flex';
       updateHud(false);
       stage1.hand.visible = false;
       stage2.pinch.visible = false;
       stage3.fingertips.forEach((s) => s.visible = false);
       stage4.blink.visible = false;
-      const t = stageTexts[index];
-      stageTextEl.innerHTML = `
-        <div class="stage-q">${t.q}</div>
-        <h2 class="stage-name">${t.name}</h2>
-        ${t.descs.map(d => `<p class="stage-desc">${d.replace(/\n/g, "<br>")}</p>`).join("")}
-      `;
+      stage4OverlayEl.classList.remove("active");
+      stageTextEl.classList.toggle('is-intro', index === 0);
+      if (immediate) {
+        setStageText(index, true);
+      } else {
+        const transitionStartedAt = stageTransition.startedAt;
+        setTimeout(() => {
+          if (stageTransition.startedAt !== transitionStartedAt) return;
+          setStageText(index, false);
+        }, 180);
+      }
     }
 
     const observer = new IntersectionObserver((entries) => {
@@ -358,11 +837,42 @@
     }, { root: viewport, threshold: [0.25, 0.55, 0.75] });
     stages.forEach((stage) => observer.observe(stage));
 
+    let scrollStageRaf = 0;
+    function syncStageWithScroll() {
+      scrollStageRaf = 0;
+      const nextIndex = clamp(Math.round(viewport.scrollTop / Math.max(1, height)), 0, stages.length - 1);
+      activateStage(nextIndex);
+    }
+    viewport.addEventListener("scroll", () => {
+      if (scrollStageRaf) cancelAnimationFrame(scrollStageRaf);
+      scrollStageRaf = requestAnimationFrame(syncStageWithScroll);
+    }, { passive: true });
+
+    window.addEventListener("keydown", (event) => {
+      const isNextKey = event.key === "ArrowRight" || event.key === ">" || event.key === ".";
+      const isPrevKey = event.key === "ArrowLeft" || event.key === "<" || event.key === ",";
+      if (!isNextKey && !isPrevKey) return;
+      event.preventDefault();
+      if (isNextKey) goToStage(activeStage + 1);
+      if (isPrevKey) goToStage(activeStage - 1);
+    });
+
+    window.addEventListener("pointerdown", (event) => {
+      if (activeStage !== 3) return;
+      stage4.origin.x = event.clientX;
+      stage4.origin.y = event.clientY;
+      stage4.fire();
+    });
+
     function resize() {
       width = window.innerWidth;
       height = window.innerHeight;
       sceneCanvas.width = width;
       sceneCanvas.height = height;
+      transitionCanvas.width = width;
+      transitionCanvas.height = height;
+      transitionTargetCanvas.width = width;
+      transitionTargetCanvas.height = height;
       previewCanvas.width = previewCanvas.offsetWidth || 160;
       previewCanvas.height = previewCanvas.offsetHeight || 120;
       stage1.resize();
@@ -427,7 +937,11 @@
       return img;
     }
 
-    const sharedShellSprites = ["shell 1.png", "shell 2.png", "shell 3.png"].map(loadImage);
+    const sharedShellSprites = [
+      "https://www.figma.com/api/mcp/asset/f9d24b57-6c35-4469-9bd6-440648cfddc0",
+      "https://www.figma.com/api/mcp/asset/ce4c6bbb-7e75-42b2-b045-df6184e3cda0",
+      "https://www.figma.com/api/mcp/asset/727a6219-cdab-45c7-8196-4a8a2ae41ddc",
+    ].map(loadImage);
     const sharedMoneyAssets = [
       { img: loadImage("./bill-1.webp"), type: "note", w: 252, h: 138, value: "1000원" },
       { img: loadImage("./bill-2.webp"), type: "note", w: 252, h: 138, value: "10000원" },
@@ -436,13 +950,17 @@
       { img: loadImage(createCoinSvg("5", "#b4bac2", "#e5e9ef", "#4a525c")), type: "coin", w: 144, h: 144, value: "5원" }
     ];
 
+    const stage0 = {
+      draw(ctx) {}
+    };
+
     const stage1 = {
       engine: Engine.create({ gravity: { x: 0, y: 0 }, positionIterations: 12, velocityIterations: 10 }),
       shells: [],
       handTrail: [],
       count: 0,
       gateY: -40,
-      suctionY: 280,
+      suctionY: 420,
       grabRadius: 150,
       targetX: 0,
       targetY: 0,
@@ -450,21 +968,21 @@
       resize() {
         if (!this.shells.length) this.init();
         this.bounds = { w: width, h: height };
-        this.targetX = width - 110;
+        this.targetX = width / 2;
         this.targetY = 24;
       },
       init() {
         this.shells = [];
-        for (let i = 0; i < 16; i++) {
+        for (let i = 0; i < 28; i++) {
           this.shells.push({
-            x: 120 + Math.random() * (width - 240),
-            y: height - 170 - Math.random() * 130,
+            x: 80 + Math.random() * (width - 160),
+            y: height - 140 - Math.random() * 160,
             vx: 0, vy: 0,
-            size: 120 + Math.random() * 64,
+            size: 60 + Math.random() * 36,
             img: sharedShellSprites[i % sharedShellSprites.length],
             orbitSeed: Math.random() * Math.PI * 2,
-            restX: 120 + Math.random() * (width - 240),
-            restY: height - 170 - Math.random() * 130,
+            restX: 80 + Math.random() * (width - 160),
+            restY: height - 140 - Math.random() * 160,
             spent: false
           });
         }
@@ -494,12 +1012,12 @@
             shell.vy += (shell.restY - shell.y) * 0.0024 + Math.cos((performance.now() * 0.0014) + shell.orbitSeed) * 0.006;
           }
           if (shell.y < this.suctionY) {
-            const pull = Math.pow(1 - clamp(shell.y / this.suctionY, 0, 1), 1.05);
-            shell.vy -= 2.1 * pull;
-            shell.vx += (this.targetX - shell.x) * 0.012 * pull;
+            const pull = Math.pow(1 - clamp(shell.y / this.suctionY, 0, 1), 0.6);
+            shell.vy -= 4.2 * pull;
+            shell.vx += (this.targetX - shell.x) * 0.032 * pull;
           }
-          shell.vx *= 0.92;
-          shell.vy *= 0.92;
+          shell.vx *= 0.9;
+          shell.vy *= 0.9;
           shell.x = clamp(shell.x + shell.vx, 70, width - 70);
           shell.y += shell.vy;
           if (shell.y < this.gateY) {
@@ -513,15 +1031,37 @@
       draw(ctx) {
         ctx.save();
 
+        // Pass 1: glow only — drawn in absolute coords, no per-shell save/translate
+        if (this.hand.visible && this.hand.fist) {
+          const hx = this.hand.point.x, hy = this.hand.point.y;
+          const grabR = this.grabRadius * 1.5;
+          for (const shell of this.shells) {
+            if (shell.spent) continue;
+            const dx = shell.x - hx, dy = shell.y - hy;
+            const gs = Math.max(0, 1 - (dx * dx + dy * dy) / (grabR * grabR));
+            if (gs < 0.04) continue;
+            const r = shell.size * 1.1;
+            const grad = ctx.createRadialGradient(shell.x, shell.y, 0, shell.x, shell.y, r);
+            grad.addColorStop(0, `rgba(255,255,255,${(0.2 * gs).toFixed(2)})`);
+            grad.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(shell.x, shell.y, r, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+
+        // Pass 2: shell images — no translate needed, direct absolute draw
+        ctx.globalAlpha = 0.9;
         for (const shell of this.shells) {
           if (shell.spent) continue;
-          ctx.save();
-          ctx.translate(shell.x, shell.y);
-          ctx.filter = "grayscale(1) contrast(1.1)";
-          ctx.drawImage(shell.img, -shell.size * 0.62, -shell.size * 0.5, shell.size * 1.24, shell.size);
-          ctx.filter = "none";
-          ctx.restore();
+          ctx.drawImage(shell.img,
+            shell.x - shell.size * 0.62,
+            shell.y - shell.size * 0.5,
+            shell.size * 1.24,
+            shell.size);
         }
+        ctx.globalAlpha = 1;
 
         if (this.hand.visible && this.hand.landmarks) {
           const lm = this.hand.landmarks;
@@ -579,7 +1119,7 @@
       },
       hold: { item: null, kind: null, offset: { x: 0, y: 0 }, corner: null, startTs: 0, pullMax: 0 },
       resize() {
-        this.targetX = width - 110;
+        this.targetX = width / 2;
         this.targetY = 24;
         const walletW = Math.min(width * 0.76, 920);
         const walletH = Math.min(height * 0.29, 290);
@@ -964,15 +1504,15 @@
         this.pulse *= 0.92;
       },
       drawNote(ctx, note) {
-        const sliceCount = 18;
+        const sliceCount = 10;
         ctx.save();
         ctx.translate(note.x, note.y);
         ctx.rotate(note.angle);
         ctx.globalAlpha = note.counted ? note.fadeOut : 0.98;
         const shadowAlpha = 0.12 + note.shadowLift * 0.28;
         ctx.shadowColor = `rgba(0,0,0,${shadowAlpha})`;
-        ctx.shadowBlur = 18 + note.shadowLift * 24;
-        ctx.shadowOffsetY = 10 + note.shadowLift * 20;
+        ctx.shadowBlur = 12 + note.shadowLift * 18;
+        ctx.shadowOffsetY = 8 + note.shadowLift * 15;
         for (let i = 0; i < sliceCount; i++) {
           const t = i / (sliceCount - 1);
           const sx = t * note.img.width;
@@ -996,21 +1536,6 @@
         ctx.fillStyle = "rgba(6,6,6,0.28)";
         ctx.fillRect(0, 0, width, height);
 
-        ctx.save();
-        const zoneGrad = ctx.createLinearGradient(0, 0, 0, this.counterRect.h + 36);
-        zoneGrad.addColorStop(0, `rgba(255,255,255,${0.08 + this.pulse * 0.05})`);
-        zoneGrad.addColorStop(1, "rgba(255,255,255,0)");
-        ctx.fillStyle = zoneGrad;
-        ctx.strokeStyle = `rgba(255,255,255,${0.12 + this.pulse * 0.12})`;
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.rect(this.counterRect.x, this.counterRect.y, this.counterRect.w, this.counterRect.h);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.moveTo(this.counterRect.x + 22, this.counterRect.h);
-        ctx.lineTo(this.counterRect.w - 22, this.counterRect.h);
-        ctx.stroke();
-        ctx.restore();
 
         ctx.save();
         ctx.fillStyle = "rgba(0,0,0,0.28)";
@@ -1022,15 +1547,6 @@
         ctx.stroke();
         ctx.restore();
 
-        ctx.fillStyle = "rgba(242,242,242,0.72)";
-        ctx.font = "600 14px Apple SD Gothic Neo, Noto Sans KR, sans-serif";
-        ctx.fillText("COUNTING ZONE", this.counterRect.x + 24, this.counterRect.y + 28);
-        ctx.fillStyle = "rgba(242,242,242,0.56)";
-        ctx.fillText("화폐를 화면 맨 위 영역으로 올리면 카운트됩니다", this.counterRect.x + 24, this.counterRect.y + 52);
-        ctx.fillStyle = "rgba(242,242,242,0.72)";
-        ctx.fillText("WALLET", this.walletRect.x + 24, this.walletRect.y + 28);
-        ctx.fillStyle = "rgba(242,242,242,0.52)";
-        ctx.fillText("지폐는 모서리를 pinch 해서 천천히 떼어내고, 동전은 올려두면 튕기며 자리잡습니다", this.walletRect.x + 24, this.walletRect.y + 52);
 
         for (const coin of this.coins) {
           const pos = coin.body.position;
@@ -1074,7 +1590,7 @@
       targetY: 0,
       resize() {
         this.gateY = -30;
-        this.targetX = width - 110;
+        this.targetX = width / 2;
         this.targetY = 24;
       },
       detectTap(state, now) {
@@ -1162,225 +1678,202 @@
     };
 
     const stage4 = {
-      nodes: [],
-      edges: [],
-      adjacency: new Map(),
+      strands: [],
       pulses: [],
-      carriers: [],
+      motes: [],
       activity: 0,
-      topBursts: [],
-      suctionY: 165,
-      targetX: 0,
-      targetY: 0,
-      reveal: 0,
+      centerFlash: 0,
+      origin: { x: width / 2, y: height / 2 },
       blink: {
         visible: false,
         blinkCooldownUntil: 0,
         faceCenter: { x: width / 2, y: height * 0.45 },
         leftEyeCenter: { x: width * 0.46, y: height * 0.42 },
-        rightEyeCenter: { x: width * 0.54, y: height * 0.42 },
-        blinkFlash: 0
+        rightEyeCenter: { x: width * 0.54, y: height * 0.42 }
+      },
+      ensureStrands() {
+        if (this.strands.length) return;
+        const count = 72;
+        for (let i = 0; i < count; i++) {
+          const angle = (i / count) * Math.PI * 2;
+          const radius = 28 + Math.random() * 90;
+          const x = width / 2 + Math.cos(angle) * radius;
+          const y = height / 2 + Math.sin(angle) * radius;
+          this.strands.push({
+            x,
+            y,
+            vx: 0,
+            vy: 0,
+            angle,
+            seed: Math.random() * Math.PI * 2,
+            width: 0.45 + Math.random() * 1.15,
+            alpha: 0.18 + Math.random() * 0.3,
+            history: [{ x, y }],
+            maxHistory: 22 + Math.floor(Math.random() * 18)
+          });
+        }
       },
       resize() {
-        this.targetX = width - 110;
-        this.targetY = 24;
-        this.build();
+        this.origin.x = width / 2;
+        this.origin.y = height / 2;
+        this.strands.length = 0;
+        this.ensureStrands();
       },
-      build() {
-        this.nodes = [];
-        this.edges = [];
-        this.adjacency = new Map();
-        const cols = 7, rows = 5;
-        const marginX = width * 0.1, marginY = height * 0.15;
-        const gapX = (width - marginX * 2) / (cols - 1);
-        const gapY = (height - marginY * 2) / (rows - 1);
-        for (let row = 0; row < rows; row++) {
-          for (let col = 0; col < cols; col++) {
-            const id = row * cols + col;
-            this.nodes.push({ id, x: marginX + col * gapX + (Math.random() - 0.5) * 34, y: marginY + row * gapY + (Math.random() - 0.5) * 28, r: 4 + Math.random() * 2, flash: 0 });
-            this.adjacency.set(id, new Set());
-          }
+      fire(strength = 1) {
+        const cx = this.origin.x;
+        const cy = this.origin.y;
+        this.pulses.push({
+          x: cx,
+          y: cy,
+          radius: 10,
+          alpha: 0.8 * strength,
+          strength: 1.8 * strength
+        });
+        for (let i = 0; i < 16; i++) {
+          const angle = (i / 16) * Math.PI * 2 + Math.random() * 0.12;
+          this.motes.push({
+            x: cx,
+            y: cy,
+            vx: Math.cos(angle) * (1.2 + Math.random() * 2.6) * strength,
+            vy: Math.sin(angle) * (1.2 + Math.random() * 2.6) * strength,
+            alpha: 0.4 + Math.random() * 0.4,
+            size: 1 + Math.random() * 2
+          });
         }
-        const link = (a, b) => {
-          const key = a < b ? `${a}-${b}` : `${b}-${a}`;
-          if (this.edges.some((e) => e.key === key)) return;
-          this.edges.push({ key, a, b, glow: 0 });
-          this.adjacency.get(a).add(b);
-          this.adjacency.get(b).add(a);
-        };
-        for (let r = 0; r < rows; r++) {
-          for (let c = 0; c < cols; c++) {
-            const id = r * cols + c;
-            if (c < cols - 1) link(id, id + 1);
-            if (r < rows - 1) link(id, id + cols);
-            if (c < cols - 1 && r < rows - 1 && Math.random() < 0.68) link(id, id + cols + 1);
-            if (c > 0 && r < rows - 1 && Math.random() < 0.46) link(id, id + cols - 1);
-          }
-        }
-      },
-      nearest(point) {
-        let best = this.nodes[0], bestDist = Infinity;
-        for (const node of this.nodes) {
-          const d = Math.hypot(node.x - point.x, node.y - point.y);
-          if (d < bestDist) { best = node; bestDist = d; }
-        }
-        return best;
-      },
-      burst(originId) {
-        const visited = new Set([originId]);
-        const queue = [{ id: originId, depth: 0, parent: null }];
-        const baseTime = performance.now();
-        while (queue.length) {
-          const cur = queue.shift();
-          this.pulses.push({ type: "node", nodeId: cur.id, start: baseTime + cur.depth * 70, duration: 260 });
-          if (cur.parent !== null) {
-            this.carriers.push({
-              fromId: cur.parent,
-              toId: cur.id,
-              start: baseTime + cur.depth * 70,
-              duration: 220,
-              alpha: 1,
-              label: ["0", "1", "10", "100", "+", "01", "101", "11"][Math.floor(Math.random() * 8)],
-              kind: Math.random() < 0.78 ? "digit" : "light"
-            });
-          }
-          if (cur.depth > 5) continue;
-          for (const n of this.adjacency.get(cur.id)) {
-            if (visited.has(n)) continue;
-            visited.add(n);
-            queue.push({ id: n, depth: cur.depth + 1, parent: cur.id });
-          }
-        }
+        this.centerFlash = 1;
+        this.activity += 1000;
         updateHud();
-        this.blink.blinkFlash = 1;
-        this.reveal = 1;
       },
       update(ts) {
-        this.reveal *= 0.9;
-        this.nodes.forEach((n) => n.flash *= 0.9);
-        this.edges.forEach((e) => e.glow *= 0.9);
+        this.ensureStrands();
+        const targetX = this.blink.visible ? lerp(width / 2, this.blink.faceCenter.x, 0.4) : width / 2;
+        const targetY = this.blink.visible ? lerp(height / 2, this.blink.faceCenter.y, 0.4) : height / 2;
+        this.origin.x += (targetX - this.origin.x) * 0.065;
+        this.origin.y += (targetY - this.origin.y) * 0.065;
+        this.centerFlash *= 0.92;
+
         for (let i = this.pulses.length - 1; i >= 0; i--) {
-          const p = this.pulses[i];
-          const t = (ts - p.start) / p.duration;
-          if (t < 0) continue;
-          if (t >= 1) { this.pulses.splice(i, 1); continue; }
-          const eased = 1 - Math.abs(1 - t * 2);
-          this.nodes[p.nodeId].flash = Math.max(this.nodes[p.nodeId].flash, eased);
+          const pulse = this.pulses[i];
+          pulse.radius += 7 + pulse.strength * 1.8;
+          pulse.alpha *= 0.95;
+          pulse.strength *= 0.992;
+          if (pulse.alpha < 0.04) this.pulses.splice(i, 1);
         }
-        for (let i = this.carriers.length - 1; i >= 0; i--) {
-          const c = this.carriers[i];
-          const t = (ts - c.start) / c.duration;
-          if (t < 0) continue;
-          if (t >= 1) { this.carriers.splice(i, 1); continue; }
-          c.progress = 1 - Math.pow(1 - t, 2);
-          c.alpha = 1 - t * 0.25;
+
+        for (let i = this.motes.length - 1; i >= 0; i--) {
+          const mote = this.motes[i];
+          mote.x += mote.vx;
+          mote.y += mote.vy;
+          mote.vx *= 0.98;
+          mote.vy *= 0.98;
+          mote.alpha *= 0.965;
+          if (mote.alpha < 0.03) this.motes.splice(i, 1);
         }
-        for (let i = this.topBursts.length - 1; i >= 0; i--) {
-          const burst = this.topBursts[i];
-          if (burst.y < this.suctionY) {
-            const pull = Math.pow(1 - clamp(burst.y / this.suctionY, 0, 1), 1.25);
-            burst.speed += 0.18 * pull;
-            burst.x += (this.targetX - burst.x) * 0.03 * pull;
+
+        const time = ts * 0.001;
+        for (const strand of this.strands) {
+          const dx = strand.x - this.origin.x;
+          const dy = strand.y - this.origin.y;
+          const dist = Math.max(18, Math.hypot(dx, dy));
+          const swirlX = (-dy / dist) * (0.55 + Math.sin(time + strand.seed) * 0.18);
+          const swirlY = (dx / dist) * (0.55 + Math.cos(time * 0.9 + strand.seed) * 0.18);
+          const pullX = (this.origin.x - strand.x) * 0.0009;
+          const pullY = (this.origin.y - strand.y) * 0.0009;
+          const driftX = Math.cos(time * 0.85 + strand.seed) * 0.03;
+          const driftY = Math.sin(time * 0.7 + strand.seed * 1.2) * 0.03;
+
+          strand.vx += swirlX + pullX + driftX;
+          strand.vy += swirlY + pullY + driftY;
+
+          for (const pulse of this.pulses) {
+            const pdx = strand.x - pulse.x;
+            const pdy = strand.y - pulse.y;
+            const pdist = Math.max(1, Math.hypot(pdx, pdy));
+            const band = Math.abs(pdist - pulse.radius);
+            if (band < 56) {
+              const force = (1 - band / 56) * 0.16 * pulse.strength;
+              strand.vx += (pdx / pdist) * force;
+              strand.vy += (pdy / pdist) * force;
+            }
           }
-          burst.y -= burst.speed;
-          burst.alpha *= 0.9;
-          if (burst.y < 16 || burst.alpha < 0.08) {
-            this.topBursts.splice(i, 1);
-          }
+
+          strand.vx *= 0.94;
+          strand.vy *= 0.94;
+          strand.x += strand.vx;
+          strand.y += strand.vy;
+
+          if (strand.x < -80) strand.x = width + 80;
+          if (strand.x > width + 80) strand.x = -80;
+          if (strand.y < -80) strand.y = height + 80;
+          if (strand.y > height + 80) strand.y = -80;
+
+          strand.history.push({ x: strand.x, y: strand.y });
+          if (strand.history.length > strand.maxHistory) strand.history.shift();
         }
-        this.blink.blinkFlash *= 0.9;
       },
       draw(ctx) {
-        const activeVisual = this.reveal >= 0.035 || this.topBursts.length > 0 || this.carriers.length > 0 || this.pulses.length > 0;
-        if (!activeVisual) {
-          return;
-        }
+        this.ensureStrands();
         ctx.save();
-        ctx.fillStyle = `rgba(0,0,0,${0.22 * this.reveal})`;
-        ctx.fillRect(0, 0, width, height);
-        ctx.globalCompositeOperation = "destination-out";
-        for (const eye of [this.blink.leftEyeCenter, this.blink.rightEyeCenter]) {
-          const grad = ctx.createRadialGradient(eye.x, eye.y, 6, eye.x, eye.y, 90);
-          grad.addColorStop(0, `rgba(0,0,0,${0.95 * this.reveal})`);
-          grad.addColorStop(1, "rgba(0,0,0,0)");
-          ctx.fillStyle = grad;
+
+        for (const strand of this.strands) {
+          if (strand.history.length < 2) continue;
           ctx.beginPath();
-          ctx.arc(eye.x, eye.y, 92, 0, Math.PI * 2);
-          ctx.fill();
-        }
-        ctx.restore();
-        for (const edge of this.edges) {
-          const a = this.nodes[edge.a], b = this.nodes[edge.b];
-          ctx.strokeStyle = `rgba(214,214,214,${(0.05 + edge.glow * 0.24) * this.reveal})`;
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.moveTo(a.x, a.y);
-          ctx.lineTo(b.x, b.y);
+          ctx.moveTo(strand.history[0].x, strand.history[0].y);
+          for (let i = 1; i < strand.history.length; i++) {
+            const p = strand.history[i];
+            ctx.lineTo(p.x, p.y);
+          }
+          ctx.strokeStyle = `rgba(255,255,255,${strand.alpha.toFixed(3)})`;
+          ctx.lineWidth = strand.width;
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
           ctx.stroke();
         }
-        for (const node of this.nodes) {
-          const flash = node.flash;
-          const grad = ctx.createRadialGradient(node.x, node.y, 1, node.x, node.y, 24 + flash * 18);
-          grad.addColorStop(0, `rgba(245,245,245,${(0.44 + flash * 0.12) * this.reveal})`);
-          grad.addColorStop(0.38, `rgba(190,190,190,${(0.14 + flash * 0.18) * this.reveal})`);
-          grad.addColorStop(1, "rgba(180,180,180,0)");
-          ctx.fillStyle = grad;
+
+        for (const pulse of this.pulses) {
           ctx.beginPath();
-          ctx.arc(node.x, node.y, 24 + flash * 18, 0, Math.PI * 2);
-          ctx.fill();
+          ctx.arc(pulse.x, pulse.y, pulse.radius, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(255,255,255,${(pulse.alpha * 0.34).toFixed(3)})`;
+          ctx.lineWidth = 0.9;
+          ctx.stroke();
+        }
+
+        for (const mote of this.motes) {
           ctx.beginPath();
-          ctx.fillStyle = `rgba(240,240,240,${(0.34 + flash * 0.22) * this.reveal})`;
-          ctx.arc(node.x, node.y, node.r + flash * 2.6, 0, Math.PI * 2);
+          ctx.arc(mote.x, mote.y, mote.size, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255,255,255,${mote.alpha.toFixed(3)})`;
           ctx.fill();
         }
-        for (const c of this.carriers) {
-          const from = this.nodes[c.fromId], to = this.nodes[c.toId];
-          const x = from.x + (to.x - from.x) * c.progress;
-          const y = from.y + (to.y - from.y) * c.progress;
-          if (c.kind === "digit") {
-            ctx.shadowColor = `rgba(236,236,236,${c.alpha * 0.24 * this.reveal})`;
-            ctx.shadowBlur = 18;
-            ctx.fillStyle = `rgba(242,242,242,${c.alpha * this.reveal})`;
-            ctx.font = "700 17px SFMono-Regular, Menlo, monospace";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText(c.label, x, y);
-          } else {
-            ctx.shadowColor = `rgba(236,236,236,${c.alpha * 0.24 * this.reveal})`;
-            ctx.shadowBlur = 16;
-            ctx.fillStyle = `rgba(238,238,238,${c.alpha * this.reveal})`;
-            ctx.beginPath();
-            ctx.arc(x, y, 3.4, 0, Math.PI * 2);
-            ctx.fill();
-          }
-        }
-        for (const burst of this.topBursts) {
+
+        if (this.blink.visible) {
           ctx.save();
-          ctx.shadowColor = `rgba(238,238,238,${burst.alpha * 0.26 * this.reveal})`;
-          ctx.shadowBlur = 18;
-          ctx.fillStyle = `rgba(242,242,242,${burst.alpha * this.reveal})`;
-          ctx.font = "700 20px SFMono-Regular, Menlo, monospace";
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          ctx.fillText(burst.label, burst.x, burst.y);
+          ctx.strokeStyle = "rgba(255,255,255,0.12)";
+          ctx.lineWidth = 0.8;
+          ctx.beginPath();
+          ctx.moveTo(this.blink.leftEyeCenter.x, this.blink.leftEyeCenter.y);
+          ctx.quadraticCurveTo(this.blink.faceCenter.x, this.blink.faceCenter.y - 18, this.blink.rightEyeCenter.x, this.blink.rightEyeCenter.y);
+          ctx.stroke();
           ctx.restore();
         }
-        if (this.blink.visible) {
-          ctx.strokeStyle = `rgba(232,232,232,${(0.1 + this.blink.blinkFlash * 0.12) * this.reveal})`;
-          ctx.lineWidth = 1.2;
-          for (const eye of [this.blink.leftEyeCenter, this.blink.rightEyeCenter]) {
-            ctx.beginPath();
-            ctx.ellipse(eye.x, eye.y, 36 + this.blink.blinkFlash * 12, 18 + this.blink.blinkFlash * 8, 0, 0, Math.PI * 2);
-            ctx.stroke();
-          }
-        }
+
+        ctx.save();
+        const cf = this.centerFlash;
+        ctx.shadowColor = `rgba(255,255,255,${0.32 + cf * 0.4})`;
+        ctx.shadowBlur = 4 + cf * 18;
+        ctx.fillStyle = `rgba(255,255,255,${0.72 + cf * 0.18})`;
+        ctx.beginPath();
+        ctx.arc(this.origin.x, this.origin.y, 3.2 + cf * 1.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        ctx.restore();
       }
     };
 
     const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
     hands.setOptions({ maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.55, minTrackingConfidence: 0.45 });
     hands.onResults((results) => {
-      if (activeStage === 0) {
+      if (activeStage === 1) {
         if (!results.multiHandLandmarks || !results.multiHandLandmarks.length) {
           stage1.hand.visible = false;
           stage1.hand.fist = false;
@@ -1407,7 +1900,7 @@
         stage1.hand.point = { x: prev.x + (next.x - prev.x) * 0.4, y: prev.y + (next.y - prev.y) * 0.4 };
         stage1.hand.velocity = { x: stage1.hand.point.x - prev.x, y: stage1.hand.point.y - prev.y };
         stage1.hand.landmarks = lm.map(p => ({ x: (1 - p.x) * width, y: p.y * height }));
-      } else if (activeStage === 1) {
+      } else if (activeStage === 2) {
         if (!results.multiHandLandmarks || !results.multiHandLandmarks.length) {
           if (stage2.hold.item) stage2.releaseHold(performance.now());
           stage2.pinch.visible = false;
@@ -1431,7 +1924,7 @@
         stage2.pinch.strength = clamp(1 - thumbIndex / (handScale * 1.45), 0, 1);
         stage2.pinch.point = { x: prev.x + (center.x - prev.x) * 0.5, y: prev.y + (center.y - prev.y) * 0.5 };
         stage2.pinch.velocity = { x: stage2.pinch.point.x - prev.x, y: stage2.pinch.point.y - prev.y };
-      } else if (activeStage === 2) {
+      } else if (activeStage === 3) {
         const now = performance.now();
         const seen = new Set();
         if (!results.multiHandLandmarks || !results.multiHandLandmarks.length) {
@@ -1467,7 +1960,7 @@
     const faceMesh = new FaceMesh({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}` });
     faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
     faceMesh.onResults((results) => {
-      if (activeStage !== 3) return;
+      if (activeStage !== 4) return;
       const now = performance.now();
       if (!results.multiFaceLandmarks || !results.multiFaceLandmarks.length) {
         stage4.blink.visible = false;
@@ -1489,18 +1982,8 @@
       stage4.blink.leftEyeCenter = { x: (1 - leftEyeRef.x) * width, y: leftEyeRef.y * height };
       stage4.blink.rightEyeCenter = { x: (1 - rightEyeRef.x) * width, y: rightEyeRef.y * height };
       if (ear < 0.17 && now > stage4.blink.blinkCooldownUntil) {
-        stage4.blink.blinkCooldownUntil = now + 500;
-        stage4.burst(stage4.nearest(stage4.blink.faceCenter).id);
-        const amount = 1000 + Math.floor(Math.random() * 5) * 1000;
-        stage4.activity += amount;
-        stage4.topBursts.push({
-          x: stage4.blink.faceCenter.x + (Math.random() - 0.5) * 40,
-          y: stage4.blink.faceCenter.y - 20,
-          speed: 3.2 + Math.random() * 1.4,
-          alpha: 1,
-          label: `+${amount}`
-        });
-        updateHud();
+        stage4.blink.blinkCooldownUntil = now + 900;
+        stage4.fire();
       }
     });
 
@@ -1515,11 +1998,11 @@
       if (!videoReady || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
       if (ts - lastVisionTs < 66) return;
       lastVisionTs = ts;
-      if (activeStage === 3) {
+      if (activeStage === 4) {
         if (faceBusy) return;
         faceBusy = true;
         try { await faceMesh.send({ image: video }); } finally { faceBusy = false; }
-      } else {
+      } else if (activeStage > 0) {
         if (handsBusy) return;
         handsBusy = true;
         try { await hands.send({ image: video }); } finally { handsBusy = false; }
@@ -1528,20 +2011,42 @@
 
     function drawStage(ts) {
       sceneCtx.clearRect(0, 0, width, height);
-      if (activeStage === 0) stage1.draw(sceneCtx);
-      if (activeStage === 1) stage2.draw(sceneCtx);
-      if (activeStage === 2) stage3.draw(sceneCtx);
-      if (activeStage === 3) stage4.draw(sceneCtx);
+      if (stageTransition.active) {
+        drawStageMorph(sceneCtx, ts);
+      } else {
+        if (activeStage === 0) stage0.draw(sceneCtx);
+        if (activeStage === 1) stage1.draw(sceneCtx);
+        if (activeStage === 2) stage2.draw(sceneCtx);
+        if (activeStage === 3) stage3.draw(sceneCtx);
+        if (activeStage === 4) stage4.draw(sceneCtx);
+      }
+
+      // 공통 카운팅 영역 — 정중앙 원형 그라디언트, 카운트 시 pulse
+      sceneCtx.shadowBlur = 0;
+      sceneCtx.globalAlpha = 1;
+      sceneCtx.globalCompositeOperation = "source-over";
+      hudPulse *= 0.86;
+      if (hudPulse > 0.01) {
+        const cx = width / 2, cy = 0;
+        const r = Math.min(width, height) * 0.38;
+        const eased = hudPulse * hudPulse;
+        const radGrad = sceneCtx.createRadialGradient(cx, cy, 0, cx, cy, r);
+        radGrad.addColorStop(0,   `rgba(255,255,255,${(eased * 0.28).toFixed(3)})`);
+        radGrad.addColorStop(0.5, `rgba(255,255,255,${(eased * 0.08).toFixed(3)})`);
+        radGrad.addColorStop(1,   'rgba(255,255,255,0)');
+        sceneCtx.fillStyle = radGrad;
+        sceneCtx.fillRect(0, 0, width, height);
+      }
     }
 
     function tick(ts) {
       const dt = Math.min(33, ts - (tick.last || ts));
       tick.last = ts;
       drawWebcam();
-      if (activeStage === 0) stage1.update(dt);
-      if (activeStage === 1) stage2.update();
-      if (activeStage === 2) stage3.update();
-      if (activeStage === 3) stage4.update(ts);
+      if (activeStage === 1) stage1.update(dt);
+      if (activeStage === 2) stage2.update();
+      if (activeStage === 3) stage3.update();
+      if (activeStage === 4) stage4.update(ts);
       drawStage(ts);
       animateHudCounter();
       runVision(ts);
@@ -1549,7 +2054,7 @@
     }
 
     resize();
-    activateStage(0);
+    goToStage(0, { immediate: true });
     window.addEventListener("resize", resize);
 
     setupCamera()

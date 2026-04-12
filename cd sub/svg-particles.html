@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SVG Particle System</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #000;
+    overflow: hidden;
+    font-family: 'Courier New', Courier, monospace;
+  }
+
+  canvas {
+    display: block;
+    position: fixed;
+    inset: 0;
+  }
+
+  /* HUD — top-left status readout */
+  #hud {
+    position: fixed;
+    top: 22px;
+    left: 24px;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: rgba(255, 255, 255, 0.18);
+    text-transform: uppercase;
+    line-height: 2.2;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  /* Button row */
+  #controls {
+    position: fixed;
+    bottom: 36px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 18px;
+    z-index: 10;
+  }
+
+  .btn {
+    background: none;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    color: rgba(255, 255, 255, 0.48);
+    padding: 10px 30px;
+    font: 9px/1 'Courier New', monospace;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: border-color .15s, color .15s;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn:hover  { border-color: rgba(255,255,255,.7);  color: rgba(255,255,255,.85); }
+  .btn.active { border-color: rgba(255,255,255,.92); color: rgba(255,255,255,.95); }
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<div id="hud">
+  <div id="hud-status">SYS_INIT</div>
+  <div id="hud-count">NODES: –</div>
+  <div id="hud-state">STATE: IDLE</div>
+</div>
+
+<div id="controls">
+  <button class="btn" id="btnScatter">SCATTER</button>
+  <button class="btn" id="btnGather">GATHER</button>
+</div>
+
+<script>
+'use strict';
+
+// ════════════════════════════════════════════════════════════════════════════
+//  SVG PARTICLE SYSTEM — DIGITAL RECONSTRUCTION VISUALIZER
+// ════════════════════════════════════════════════════════════════════════════
+//
+//  HOW TO INJECT YOUR OWN SVG
+//  ──────────────────────────
+//  Option A — Inline string  (works on file:// and any server)
+//    Paste your SVG markup into SVG_STRING below.
+//    The parser reads <circle>, <ellipse>, <rect> elements.
+//
+//  Option B — File path  (requires local HTTP server, not file://)
+//    Set SVG_FILE_PATH to your .svg file, e.g. './logo.svg'.
+//    SVG_STRING is ignored when SVG_FILE_PATH is set.
+//
+//  If both are null / empty, the built-in concentric-ring demo runs.
+//
+// ════════════════════════════════════════════════════════════════════════════
+
+// ── OPTION A: replace null with your SVG string ──────────────────────────
+const SVG_STRING = null;
+// Example:
+// const SVG_STRING = `
+// <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+//   <circle cx="100" cy="100" r="3"/>
+//   <circle cx="80"  cy="70"  r="2"/>
+// </svg>`;
+
+// ── OPTION B: replace null with your file path ───────────────────────────
+const SVG_FILE_PATH = './Shell.svg';
+// Example:
+// const SVG_FILE_PATH = './my-logo.svg';
+
+// ════════════════════════════════════════════════════════════════════════════
+//  CONFIGURATION
+// ════════════════════════════════════════════════════════════════════════════
+
+const CFG = {
+  // Spring physics (per-particle values are randomly varied around these)
+  gatherSpringK:    0.052,   // stiffness pulling toward gather target
+  gatherDamping:    0.82,    // velocity damping while gathering (< 1)
+  scatterSpringK:   0.038,   // stiffness toward scatter target
+  scatterDamping:   0.87,    // velocity damping while scattering
+
+  // Noise / organic feel
+  noiseAmp:         0.13,    // per-frame random impulse (electronic jitter)
+  trembleAmp:       0.30,    // residual oscillation amplitude at gathered target
+
+  // Particle visuals
+  baseRadius:       1.1,     // dot base radius (px)
+  radiusVariance:   1.0,     // random extra radius per particle
+  crossFraction:    0.14,    // fraction rendered as + cross markers
+  dashFraction:     0.08,    // fraction rendered as — dash lines
+
+  // Motion trail (lower = longer ghost trail)
+  trailAlpha:       0.16,    // opacity of per-frame black overlay
+
+  // Mouse repulsion
+  mouseRepelRadius: 85,      // px
+  mouseRepelStr:    40,
+
+  // Timing
+  autoGatherDelay:  1500,    // ms after load before first gather
+
+  // ── AUTO LOOP (optional) ─────────────────────────────────────────────────
+  // Set autoLoop: true to cycle scatter ↔ gather automatically.
+  autoLoop:         false,
+  autoLoopPeriod:   3800,    // ms between state changes
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+//  GLOBALS
+// ════════════════════════════════════════════════════════════════════════════
+
+const canvas      = document.getElementById('canvas');
+const ctx         = canvas.getContext('2d');
+const hudStatus   = document.getElementById('hud-status');
+const hudCount    = document.getElementById('hud-count');
+const hudState    = document.getElementById('hud-state');
+const btnScatter  = document.getElementById('btnScatter');
+const btnGather   = document.getElementById('btnGather');
+
+let W = 0, H = 0, dpr = 1;
+let particles    = [];
+let svgViewBox   = { x: 0, y: 0, w: 100, h: 100 };
+let svgScale     = 1,  svgOffX = 0, svgOffY = 0;
+let state        = 'scatter';   // 'scatter' | 'gather'
+let mouse        = { x: null, y: null };
+let frameCount   = 0;
+let rafId        = null;
+let autoLoopId   = null;
+
+// ════════════════════════════════════════════════════════════════════════════
+//  SECTION 1 — LOAD SVG
+// ════════════════════════════════════════════════════════════════════════════
+
+async function loadSVG() {
+  setStatus('LOADING');
+
+  // Option B: fetch file
+  if (SVG_FILE_PATH) {
+    try {
+      const res = await fetch(SVG_FILE_PATH);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      setStatus('FILE_OK');
+      return text;
+    } catch (e) {
+      console.warn('[SVGParticles] File load failed:', e.message,
+        '→ falling back to SVG_STRING or demo');
+    }
+  }
+
+  // Option A: inline string
+  if (SVG_STRING && SVG_STRING.trim().length > 10) {
+    setStatus('STRING_OK');
+    return SVG_STRING;
+  }
+
+  // Fallback: built-in demo
+  setStatus('DEMO_MODE');
+  return generateDefaultSVG();
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  SECTION 2 — PARSE SVG POINTS
+// ════════════════════════════════════════════════════════════════════════════
+
+function parseSVGPoints(svgText) {
+  const parser = new DOMParser();
+  const doc    = parser.parseFromString(svgText, 'image/svg+xml');
+  const svgEl  = doc.querySelector('svg');
+  if (!svgEl) { console.error('[SVGParticles] No <svg> element found'); return []; }
+
+  // Parse viewBox (falls back to width/height attributes)
+  const vbStr = svgEl.getAttribute('viewBox');
+  if (vbStr) {
+    const [x, y, w, h] = vbStr.trim().split(/[\s,]+/).map(Number);
+    svgViewBox = { x, y, w, h };
+  } else {
+    svgViewBox = {
+      x: 0, y: 0,
+      w: parseFloat(svgEl.getAttribute('width')  || 100),
+      h: parseFloat(svgEl.getAttribute('height') || 100),
+    };
+  }
+
+  const pts = [];
+
+  // ── <circle> ────────────────────────────────────────────────────────────
+  svgEl.querySelectorAll('circle').forEach(el => {
+    pts.push({
+      x: parseFloat(el.getAttribute('cx') || 0),
+      y: parseFloat(el.getAttribute('cy') || 0),
+      r: parseFloat(el.getAttribute('r')  || 1),
+    });
+  });
+
+  // ── <ellipse> ───────────────────────────────────────────────────────────
+  svgEl.querySelectorAll('ellipse').forEach(el => {
+    pts.push({
+      x: parseFloat(el.getAttribute('cx') || 0),
+      y: parseFloat(el.getAttribute('cy') || 0),
+      r: Math.max(
+        parseFloat(el.getAttribute('rx') || 1),
+        parseFloat(el.getAttribute('ry') || 1),
+      ),
+    });
+  });
+
+  // ── <rect> (use geometric center) ───────────────────────────────────────
+  svgEl.querySelectorAll('rect').forEach(el => {
+    const x = parseFloat(el.getAttribute('x')      || 0);
+    const y = parseFloat(el.getAttribute('y')      || 0);
+    const w = parseFloat(el.getAttribute('width')  || 0);
+    const h = parseFloat(el.getAttribute('height') || 0);
+    pts.push({ x: x + w * 0.5, y: y + h * 0.5, r: Math.min(w, h) * 0.5 });
+  });
+
+  // ── <polygon> — centroid of each polygon ────────────────────────────────
+  svgEl.querySelectorAll('polygon').forEach(el => {
+    const vals = el.getAttribute('points').trim().split(/[\s,]+/).map(Number);
+    let sumX = 0, sumY = 0, n = 0;
+    for (let i = 0; i + 1 < vals.length; i += 2) { sumX += vals[i]; sumY += vals[i+1]; n++; }
+    if (n > 0) pts.push({ x: sumX / n, y: sumY / n, r: 1.5 });
+  });
+
+  // ── <path> — excluded (complex; extend here if needed) ──────────────────
+
+  return pts;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  SECTION 3 — CANVAS & VIEWPORT TRANSFORM
+// ════════════════════════════════════════════════════════════════════════════
+
+function resizeCanvas() {
+  dpr = window.devicePixelRatio || 1;
+  W   = window.innerWidth;
+  H   = window.innerHeight;
+  canvas.width        = Math.round(W * dpr);
+  canvas.height       = Math.round(H * dpr);
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  // Apply device pixel ratio once; all drawing coordinates stay in CSS pixels.
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  recalcSVGTransform();
+}
+
+// Compute scale + offset so the SVG viewBox fits centered on screen.
+function recalcSVGTransform() {
+  const pad    = 80;
+  const scaleX = (W - pad * 2) / svgViewBox.w;
+  const scaleY = (H - pad * 2) / svgViewBox.h;
+  svgScale     = Math.min(scaleX, scaleY) * 0.5;
+  const rw     = svgViewBox.w * svgScale;
+  const rh     = svgViewBox.h * svgScale;
+  svgOffX      = (W - rw) * 0.5 - svgViewBox.x * svgScale;
+  svgOffY      = (H - rh) * 0.5 - svgViewBox.y * svgScale;
+}
+
+// Convert SVG coordinate space → screen/canvas pixel.
+function svgToScreen(sx, sy) {
+  return {
+    x: sx * svgScale + svgOffX,
+    y: sy * svgScale + svgOffY,
+  };
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  SECTION 4 — PARTICLE CLASS
+// ════════════════════════════════════════════════════════════════════════════
+
+class Particle {
+  constructor(svgX, svgY) {
+    // Original SVG coordinate (used to recompute screen target on resize)
+    this.svgX = svgX;
+    this.svgY = svgY;
+
+    // Gather target (screen coords) — computed by setGatherTargets()
+    this.tx = 0;
+    this.ty = 0;
+
+    // Scatter target (screen coords) — randomised by setScatterTargets()
+    this.sx = 0;
+    this.sy = 0;
+
+    // Active spring target (ctX/ctY) — set when state changes
+    this.ctX = 0;
+    this.ctY = 0;
+
+    // Current screen position
+    this.x = 0;
+    this.y = 0;
+
+    // Velocity
+    this.vx = (Math.random() - 0.5) * 3;
+    this.vy = (Math.random() - 0.5) * 3;
+
+    // Per-particle spring variance (prevents lockstep movement)
+    this.gK = CFG.gatherSpringK  * (0.72 + Math.random() * 0.56);
+    this.gD = CFG.gatherDamping  * (0.96 + Math.random() * 0.07);
+    this.sK = CFG.scatterSpringK * (0.72 + Math.random() * 0.56);
+    this.sD = CFG.scatterDamping * (0.97 + Math.random() * 0.05);
+
+    // Per-particle activation delay (frames)
+    this.delay  = 0;
+    this.delayC = 0;
+
+    // Visual type
+    const rnd  = Math.random();
+    this.type  = rnd < CFG.crossFraction                     ? 'cross'
+               : rnd < CFG.crossFraction + CFG.dashFraction  ? 'dash'
+               : 'dot';
+
+    this.radius    = CFG.baseRadius + Math.random() * CFG.radiusVariance;
+    this.alpha     = 0.50 + Math.random() * 0.50;
+    this.bright    = 165 + Math.floor(Math.random() * 90);   // 165–255 grey
+    this.dashAngle = Math.random() * Math.PI;                 // stable line direction
+
+    // Oscillation phase (drives flicker + tremble)
+    this.phase  = Math.random() * Math.PI * 2;
+    this.phSpd  = 0.020 + Math.random() * 0.038;
+
+    // Rare brightness flash
+    this.flashCD = Math.floor(120 + Math.random() * 300);
+  }
+
+  // ── UPDATE ────────────────────────────────────────────────────────────────
+  update(mx, my) {
+    // Per-particle delay gate: stagger responses to state changes.
+    if (this.delayC < this.delay) {
+      this.delayC++;
+      this.phase += this.phSpd;
+      return;
+    }
+
+    const isGather = (state === 'gather');
+    const k = isGather ? this.gK : this.sK;
+    const d = isGather ? this.gD : this.sD;
+
+    // Effective target — offset by mouse repulsion if cursor is nearby.
+    let ttx = this.ctX;
+    let tty = this.ctY;
+
+    if (mx !== null) {
+      const dx    = this.x - mx;
+      const dy    = this.y - my;
+      const dist2 = dx * dx + dy * dy;
+      const rr    = CFG.mouseRepelRadius;
+      if (dist2 < rr * rr) {
+        const dist = Math.sqrt(dist2) || 0.001;
+        const f    = ((rr - dist) / rr) * CFG.mouseRepelStr;
+        ttx += (dx / dist) * f;
+        tty += (dy / dist) * f;
+      }
+    }
+
+    // Spring force toward target
+    this.vx += (ttx - this.x) * k;
+    this.vy += (tty - this.y) * k;
+
+    // Electronic noise — random per-frame impulse (signal jitter)
+    this.vx += (Math.random() - 0.5) * CFG.noiseAmp;
+    this.vy += (Math.random() - 0.5) * CFG.noiseAmp;
+
+    // Velocity damping
+    this.vx *= d;
+    this.vy *= d;
+
+    // Integrate position
+    this.x += this.vx;
+    this.y += this.vy;
+
+    // Advance oscillation phase
+    this.phase += this.phSpd;
+
+    // Residual trembling when settled at gather target (digital "lock-in" noise).
+    if (isGather) {
+      const dx = this.x - this.tx;
+      const dy = this.y - this.ty;
+      if (dx * dx + dy * dy < 16) {
+        const t = CFG.trembleAmp;
+        this.x += Math.sin(this.phase * 1.9) * t * (0.4 + Math.random() * 0.6);
+        this.y += Math.cos(this.phase * 2.7) * t * (0.4 + Math.random() * 0.6);
+      }
+    }
+
+    // Flash cooldown
+    if (this.flashCD > 0) this.flashCD--;
+  }
+
+  // ── DRAW ──────────────────────────────────────────────────────────────────
+  draw() {
+    // Flicker: sine modulation on alpha — mimics signal pulse
+    const flicker = 0.70 + 0.30 * Math.sin(this.phase * 2.4);
+    let   a       = this.alpha * flicker;
+    let   br      = this.bright;
+
+    // Occasional brightness spike (digital signal burst)
+    if (this.flashCD === 0) {
+      a  = Math.min(1, a * 2.6);
+      br = 255;
+      this.flashCD = 180 + Math.floor(Math.random() * 250);
+    }
+
+    ctx.globalAlpha = a;
+    const col = `rgb(${br},${br},${br})`;
+    ctx.fillStyle   = col;
+    ctx.strokeStyle = col;
+
+    switch (this.type) {
+      // ── circular dot
+      case 'dot':
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+
+      // ── + cross marker
+      case 'cross': {
+        const s = this.radius * 2.3;
+        ctx.lineWidth = 0.65;
+        ctx.beginPath();
+        ctx.moveTo(this.x - s, this.y);  ctx.lineTo(this.x + s, this.y);
+        ctx.moveTo(this.x, this.y - s);  ctx.lineTo(this.x, this.y + s);
+        ctx.stroke();
+        break;
+      }
+
+      // ── — dash line
+      case 'dash': {
+        const s  = this.radius * 2.9;
+        const ca = Math.cos(this.dashAngle);
+        const sa = Math.sin(this.dashAngle);
+        ctx.lineWidth = 0.72;
+        ctx.beginPath();
+        ctx.moveTo(this.x - ca * s, this.y - sa * s);
+        ctx.lineTo(this.x + ca * s, this.y + sa * s);
+        ctx.stroke();
+        break;
+      }
+    }
+
+    ctx.globalAlpha = 1;
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  SECTION 5 — PARTICLE CREATION & STATE MANAGEMENT
+// ════════════════════════════════════════════════════════════════════════════
+
+function createParticles(svgPoints) {
+  particles = svgPoints.map(p => new Particle(p.x, p.y));
+  hudCount.textContent = `NODES: ${particles.length}`;
+}
+
+// Recompute screen-space gather targets from stored SVG coords.
+function setGatherTargets() {
+  recalcSVGTransform();
+  particles.forEach(p => {
+    const sc = svgToScreen(p.svgX, p.svgY);
+    p.tx = sc.x;
+    p.ty = sc.y;
+  });
+}
+
+// Randomise scatter target positions across the full canvas.
+function setScatterTargets() {
+  particles.forEach(p => {
+    p.sx = Math.random() * W;
+    p.sy = Math.random() * H;
+  });
+}
+
+// ── Transition: all particles disperse to random positions ──────────────────
+function triggerScatter() {
+  state = 'scatter';
+  setScatterTargets();
+  particles.forEach(p => {
+    p.ctX    = p.sx;
+    p.ctY    = p.sy;
+    p.delay  = Math.floor(Math.random() * 45);
+    p.delayC = 0;
+  });
+  hudState.textContent = 'STATE: DISPERSE';
+  btnScatter.classList.add('active');
+  btnGather.classList.remove('active');
+}
+
+// ── Transition: all particles converge to SVG form ──────────────────────────
+function triggerGather() {
+  state = 'gather';
+  setGatherTargets();
+  particles.forEach(p => {
+    p.ctX    = p.tx;
+    p.ctY    = p.ty;
+    p.delay  = Math.floor(Math.random() * 90);  // staggered arrival
+    p.delayC = 0;
+  });
+  hudState.textContent = 'STATE: RECONSTRUCT';
+  btnGather.classList.add('active');
+  btnScatter.classList.remove('active');
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  SECTION 6 — UPDATE (called each frame)
+// ════════════════════════════════════════════════════════════════════════════
+
+function updateParticles() {
+  const mx = mouse.x, my = mouse.y;
+  for (let i = 0; i < particles.length; i++) {
+    particles[i].update(mx, my);
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  SECTION 7 — RENDER (called each frame)
+// ════════════════════════════════════════════════════════════════════════════
+
+function renderParticles() {
+  if (frameCount === 0) {
+    // First frame: full opaque black background (canvas default is transparent)
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, W, H);
+  } else {
+    // Every subsequent frame: semi-transparent black overlay.
+    // Creates a motion trail — lower trailAlpha = longer ghost persistence.
+    ctx.fillStyle = `rgba(0,0,0,${CFG.trailAlpha})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  for (let i = 0; i < particles.length; i++) {
+    particles[i].draw();
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  SECTION 8 — ANIMATION LOOP
+// ════════════════════════════════════════════════════════════════════════════
+
+function animate() {
+  rafId = requestAnimationFrame(animate);
+  updateParticles();
+  renderParticles();
+  frameCount++;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  SECTION 9 — UTILITIES
+// ════════════════════════════════════════════════════════════════════════════
+
+function setStatus(s) { hudStatus.textContent = s; }
+
+// Auto-loop helpers
+function startAutoLoop() {
+  if (!CFG.autoLoop || autoLoopId) return;
+  autoLoopId = setInterval(() => {
+    if (state === 'gather') triggerScatter();
+    else                    triggerGather();
+  }, CFG.autoLoopPeriod);
+}
+function stopAutoLoop() {
+  if (autoLoopId) { clearInterval(autoLoopId); autoLoopId = null; }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+//  Built-in demo SVG: six concentric rings of circles.
+//  Replace with your own SVG via SVG_STRING or SVG_FILE_PATH above.
+// ────────────────────────────────────────────────────────────────────────────
+function generateDefaultSVG() {
+  const size = 300, cx = 150, cy = 150;
+  // Each ring: { r: ring radius in SVG units, n: number of nodes }
+  const rings = [
+    { r: 0,   n: 1  },
+    { r: 30,  n: 8  },
+    { r: 58,  n: 15 },
+    { r: 86,  n: 22 },
+    { r: 112, n: 28 },
+    { r: 134, n: 33 },
+  ];
+  const els = [];
+  rings.forEach(({ r, n }) => {
+    if (r === 0) {
+      els.push(`<circle cx="${cx}" cy="${cy}" r="2"/>`);
+    } else {
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2 - Math.PI / 2;
+        const x = (cx + r * Math.cos(a)).toFixed(2);
+        const y = (cy + r * Math.sin(a)).toFixed(2);
+        els.push(`<circle cx="${x}" cy="${y}" r="2"/>`);
+      }
+    }
+  });
+  return `<svg viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">\n${els.join('\n')}\n</svg>`;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  SECTION 10 — INIT
+// ════════════════════════════════════════════════════════════════════════════
+
+async function init() {
+  resizeCanvas();
+
+  const svgText = await loadSVG();
+  const pts     = parseSVGPoints(svgText);
+
+  if (pts.length === 0) { setStatus('NO_NODES'); return; }
+
+  createParticles(pts);
+  setGatherTargets();
+  setScatterTargets();
+
+  // Place all particles at their initial scatter positions (already dispersed)
+  particles.forEach(p => {
+    p.x   = p.sx;
+    p.y   = p.sy;
+    p.ctX = p.sx;
+    p.ctY = p.sy;
+    p.vx  = (Math.random() - 0.5) * 2;
+    p.vy  = (Math.random() - 0.5) * 2;
+  });
+  state = 'scatter';
+  btnScatter.classList.add('active');
+  hudState.textContent = 'STATE: DISPERSED';
+  setStatus('READY');
+
+  // Auto-gather after initial delay
+  setTimeout(() => {
+    triggerGather();
+    setStatus('PROCESSING');
+    startAutoLoop();
+  }, CFG.autoGatherDelay);
+
+  animate();
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  EVENTS
+// ════════════════════════════════════════════════════════════════════════════
+
+btnScatter.addEventListener('click', () => {
+  stopAutoLoop();
+  triggerScatter();
+  startAutoLoop();
+});
+
+btnGather.addEventListener('click', () => {
+  stopAutoLoop();
+  triggerGather();
+  startAutoLoop();
+});
+
+window.addEventListener('mousemove',  e  => { mouse.x = e.clientX; mouse.y = e.clientY; });
+window.addEventListener('mouseleave', () => { mouse.x = null;      mouse.y = null; });
+
+window.addEventListener('resize', () => {
+  cancelAnimationFrame(rafId);
+  resizeCanvas();
+  setGatherTargets();
+  // If currently gathered, reroute active targets to updated screen positions.
+  if (state === 'gather') {
+    particles.forEach(p => { p.ctX = p.tx; p.ctY = p.ty; });
+  }
+  animate();
+});
+
+// ── GO ───────────────────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
