@@ -6,7 +6,7 @@
   <title>화폐 진화 단일 앱</title>
   <style>
     :root {
-      --bg: #111111;
+      --bg: #0b0b0b;
       --text: rgba(242, 242, 242, 0.94);
       --muted: rgba(176, 176, 176, 0.56);
       --line: rgba(255, 255, 255, 0.18);
@@ -31,8 +31,8 @@
 
     body {
       background:
-        radial-gradient(ellipse at 50% 0%, rgba(80,80,80,0.18) 0%, transparent 55%),
-        #121212;
+        radial-gradient(ellipse at 50% 0%, rgba(40,40,40,0.14) 0%, transparent 55%),
+        #0b0b0b;
     }
 
     #video {
@@ -127,7 +127,7 @@
 
     #dock {
       position: fixed;
-      right: 18px;
+      right: 22px;
       top: 50%;
       bottom: auto;
       transform: translateY(-50%);
@@ -135,23 +135,24 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 8px;
+      gap: 14px;
       padding: 0;
     }
 
     .dot {
-      width: 10px;
-      height: 10px;
+      width: 6px;
+      height: 6px;
       border-radius: 0;
       border: 0;
       background: rgba(255,255,255,0.22);
       cursor: pointer;
+      padding: 0;
       transition: transform 160ms ease, background-color 160ms ease;
     }
 
     .dot.active {
-      background: rgba(255,255,255,0.85);
-      transform: scale(1.3);
+      background: rgba(255,255,255,0.92);
+      transform: scale(1.7);
     }
 
     #stage-title {
@@ -277,6 +278,70 @@
     #panel.inverted #panel-value {
       color: #000000;
     }
+
+    #reset-btn {
+      position: fixed;
+      top: 40px;
+      right: 40px;
+      z-index: 8;
+      width: 30px;
+      height: 30px;
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      color: rgba(255, 255, 255, 0.1);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      cursor: pointer;
+      outline: none;
+      box-sizing: border-box;
+      transition: color 180ms ease, border-color 180ms ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #reset-btn.visible {
+      display: inline-flex;
+    }
+    #reset-btn:hover {
+      color: rgba(255, 255, 255, 0.6);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+    #reset-btn svg {
+      width: 14px;
+      height: 14px;
+      display: block;
+    }
+
+    #archive-link {
+      position: fixed;
+      left: 40px;
+      top: 40px;
+      z-index: 8;
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      padding: 6px 12px;
+      background: transparent;
+      color: rgba(242, 242, 242, 0.94);
+      font-family: "Courier New", Courier, monospace;
+      font-size: 15px;
+      font-weight: 400;
+      letter-spacing: 0.04em;
+      line-height: 1;
+      text-decoration: none;
+      display: none;
+      align-items: baseline;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 600ms ease, background 180ms ease, color 180ms ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #archive-link.visible {
+      display: inline-flex;
+      opacity: 1;
+    }
+    #archive-link:hover {
+      background: #ffffff;
+      color: #000000;
+    }
   </style>
 </head>
 <body>
@@ -291,6 +356,7 @@
     <section class="stage" data-index="2"></section>
     <section class="stage" data-index="3"></section>
     <section class="stage" data-index="4"></section>
+    <section class="stage" data-index="5"></section>
   </div>
 
   <div id="hud">
@@ -305,6 +371,13 @@
   </div>
 
   <div id="dock"></div>
+  <button id="reset-btn" type="button" aria-label="Reset">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/>
+      <path d="M21 3v5h-5"/>
+    </svg>
+  </button>
+  <a id="archive-link" href="./research.html">Archive</a>
   <div id="stage-title">Shell Currency</div>
 
   <div id="stage-text">
@@ -376,6 +449,14 @@
           "Decentralized, encrypted, scarce.\nNo government backs it.\nConsensus is its only authority.",
           "Blink and the value shifts.\nIs it money, or a bet on what\nmoney might become?"
         ]
+      },
+      {
+        q: "FINAL TALLY",
+        name: "ARCHIVE",
+        descs: [
+          "Across shell, paper, signal, and code\nthe ledger settles to a single sum.",
+          "What was once weighed, counted, swiped,\nand wagered is recorded here as one."
+        ]
       }
     ];
 
@@ -392,16 +473,11 @@
       fromIndex: 0,
       toIndex: 0,
       startedAt: 0,
-      duration: 1280,
       particles: []
     };
 
     function clamp01(v) {
       return Math.max(0, Math.min(1, v));
-    }
-
-    function easeInOutCubic(t) {
-      return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
     }
 
     function randomScrambleChar() {
@@ -509,95 +585,83 @@
       if (index === 2) stage2.draw(targetCtx);
       if (index === 3) stage3.draw(targetCtx);
       if (index === 4) stage4.draw(targetCtx);
+      if (index === 5) stage5.draw(targetCtx);
       targetCtx.restore();
     }
 
-    function createFallbackPoint(mode, i, total) {
-      const ratio = i / Math.max(1, total - 1);
-      const angle = ratio * Math.PI * 2;
-      if (mode === "center") {
-        return {
-          x: width * 0.5 + Math.cos(angle) * width * 0.06,
-          y: height * 0.5 + Math.sin(angle) * height * 0.06,
-          alpha: 0.45,
-          size: 1.2
-        };
-      }
-      return {
-        x: Math.random() * width,
-        y: Math.random() * height,
-        alpha: 0.18 + Math.random() * 0.26,
-        size: 0.8 + Math.random() * 1.4
-      };
-    }
+    const TRANSITION_GRID = 5;
+    const TRANSITION_FALL_SPAN = 14;
+    const TRANSITION_RISE_SPAN = 14;
+    const TRANSITION_MAX_FRAMES = 110;
+    const TRANSITION_FADE_START = 70;
+    const TRANSITION_FADE_SPAN = 26;
 
-    function buildStageFieldPoints(index, count) {
-      const points = [];
-      for (let i = 0; i < count; i++) {
-        const ratio = i / Math.max(1, count - 1);
-        const angle = ratio * Math.PI * 2;
-        if (index === 0) {
-          const ring = 40 + (i % 12) * 8 + Math.random() * 18;
-          points.push({
-            x: width * 0.5 + Math.cos(angle + i * 0.16) * ring,
-            y: height * 0.72 + Math.sin(angle * 1.2) * ring * 0.32 + (Math.random() - 0.5) * 36,
-            alpha: 0.22 + Math.random() * 0.22,
-            size: 1 + Math.random() * 1.8
-          });
-          continue;
-        }
-        if (index === 1) {
-          points.push({
-            x: width * 0.26 + (i % 12) * (width * 0.04) + (Math.random() - 0.5) * 14,
-            y: height * 0.74 + Math.floor(i / 12) * 18 + (Math.random() - 0.5) * 10,
-            alpha: 0.2 + Math.random() * 0.2,
-            size: 1 + Math.random() * 1.6
-          });
-          continue;
-        }
-        if (index === 2) {
-          points.push({
-            x: width * (0.26 + ((i % 10) / 9) * 0.48) + (Math.random() - 0.5) * 18,
-            y: height * (0.24 + ratio * 0.45) + Math.sin(angle * 3) * 16,
-            alpha: 0.18 + Math.random() * 0.2,
-            size: 0.9 + Math.random() * 1.4
-          });
-          continue;
-        }
-        points.push({
-          x: width * 0.5 + Math.cos(angle) * (36 + (i % 10) * 8) + (Math.random() - 0.5) * 12,
-          y: height * 0.5 + Math.sin(angle * 1.1) * (30 + (i % 8) * 10) + (Math.random() - 0.5) * 12,
-          alpha: 0.2 + Math.random() * 0.24,
-          size: 0.9 + Math.random() * 1.6
-        });
-      }
-      return points;
-    }
-
-    function buildTransitionParticles(fromIndex, toIndex) {
-      const count = 110;
-      const fromPoints = buildStageFieldPoints(fromIndex, count);
-      const toPoints = buildStageFieldPoints(toIndex, count);
+    function buildTransitionParticles() {
       const particles = [];
-      for (let i = 0; i < count; i++) {
-        const source = fromPoints[i] || createFallbackPoint("scatter", i, count);
-        const target = toPoints[i] || createFallbackPoint("center", i, count);
-        const typeRoll = Math.random();
-        particles.push({
-          x: source.x,
-          y: source.y,
-          tx: target.x,
-          ty: target.y,
-          vx: (Math.random() - 0.5) * 4,
-          vy: (Math.random() - 0.5) * 4,
-          size: Math.max(source.size || 1, target.size || 1),
-          alpha: Math.max(source.alpha || 0.18, target.alpha || 0.18),
-          type: typeRoll < 0.1 ? "cross" : (typeRoll < 0.16 ? "dash" : "dot"),
-          angle: Math.random() * Math.PI,
-          delay: Math.floor(Math.random() * 20)
-        });
+      const grid = TRANSITION_GRID;
+      const cellsX = Math.max(1, Math.floor(width / grid));
+      const cellsY = Math.max(1, Math.floor(height / grid));
+      let fromData = null;
+      let toData = null;
+      try {
+        fromData = transitionCtx.getImageData(0, 0, width, height).data;
+        toData = transitionTargetCtx.getImageData(0, 0, width, height).data;
+      } catch (e) { return particles; }
+      const W = width;
+      const H = height;
+      const halfCell = grid >> 1;
+      let contentCount = 0;
+      for (let cy = 0; cy < cellsY; cy++) {
+        const py = Math.min(H - 1, cy * grid + halfCell);
+        for (let cx = 0; cx < cellsX; cx++) {
+          const px = Math.min(W - 1, cx * grid + halfCell);
+          const i = (py * W + px) * 4;
+          const fromBright = Math.max(fromData[i], fromData[i + 1], fromData[i + 2]);
+          const toBright = Math.max(toData[i], toData[i + 1], toData[i + 2]);
+          const hasFrom = fromBright > 60;
+          const hasTo = toBright > 60;
+          const xRatio = cellsX > 1 ? cx / (cellsX - 1) : 0;
+          const yRatio = cellsY > 1 ? cy / (cellsY - 1) : 0;
+          if (!hasFrom && !hasTo) continue;
+          contentCount++;
+          particles.push({
+            x: cx * grid,
+            y: cy * grid,
+            hasFrom,
+            hasTo,
+            fallDelay: xRatio * 14 + yRatio * 4 + Math.random() * 4,
+            riseDelay: 18 + xRatio * 12 + yRatio * 3 + Math.random() * 4
+          });
+        }
       }
       return particles;
+    }
+
+    function buildIconParticles(iconData) {
+      if (!iconData || !iconData.points.length) return null;
+      const cx = width / 2;
+      const cy = height / 2;
+      const offsetX = cx - iconData.w / 2;
+      const offsetY = cy - iconData.h / 2;
+      const particles = [];
+      for (const p of iconData.points) {
+        const tx = p.x + offsetX;
+        const ty = p.y + offsetY;
+        const startA = Math.random() * Math.PI * 2;
+        const startR = 200 + Math.random() * 280;
+        const endA = Math.atan2(ty - cy, tx - cx) + (Math.random() - 0.5) * 0.8;
+        const endR = 140 + Math.random() * 240;
+        particles.push({
+          tx, ty,
+          sx: cx + Math.cos(startA) * startR,
+          sy: cy + Math.sin(startA) * startR,
+          ex: tx + Math.cos(endA) * endR,
+          ey: ty + Math.sin(endA) * endR + Math.random() * 70,
+          assembleDelay: Math.random() * 18,
+          disperseDelay: Math.random() * 18
+        });
+      }
+      return { particles, cx, cy };
     }
 
     function beginStageMorph(fromIndex, toIndex) {
@@ -611,112 +675,140 @@
       stageTransition.fromIndex = fromIndex;
       stageTransition.toIndex = toIndex;
       stageTransition.startedAt = performance.now();
-      stageTransition.particles = buildTransitionParticles(fromIndex, toIndex);
-    }
-
-    function drawTransitionParticle(ctx, particle) {
-      const alpha = clamp01(particle.alpha);
-      if (alpha < 0.02) return;
-      ctx.strokeStyle = `rgba(255,255,255,${alpha.toFixed(3)})`;
-      ctx.fillStyle = `rgba(255,255,255,${alpha.toFixed(3)})`;
-      if (particle.type === "cross") {
-        const s = particle.size * 2.2;
-        ctx.lineWidth = 0.7;
-        ctx.beginPath();
-        ctx.moveTo(particle.x - s, particle.y);
-        ctx.lineTo(particle.x + s, particle.y);
-        ctx.moveTo(particle.x, particle.y - s);
-        ctx.lineTo(particle.x, particle.y + s);
-        ctx.stroke();
-        return;
-      }
-      if (particle.type === "dash") {
-        const s = particle.size * 2.8;
-        const ca = Math.cos(particle.angle);
-        const sa = Math.sin(particle.angle);
-        ctx.lineWidth = 0.75;
-        ctx.beginPath();
-        ctx.moveTo(particle.x - ca * s, particle.y - sa * s);
-        ctx.lineTo(particle.x + ca * s, particle.y + sa * s);
-        ctx.stroke();
-        return;
-      }
-      ctx.beginPath();
-      ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
-      ctx.fill();
+      stageTransition.particles = buildTransitionParticles();
+      stageTransition.iconAnim = buildIconParticles(transitionIcons[toIndex]);
     }
 
     function drawStageMorph(ctx, ts) {
       if (!stageTransition.active) return;
       const elapsed = ts - stageTransition.startedAt;
-      const t = clamp01(elapsed / stageTransition.duration);
-      const fadePrev = 1 - easeInOutCubic(clamp01(elapsed / 620));
-      const fadeNext = easeInOutCubic(clamp01((elapsed - 120) / 920));
-      let movingCount = 0;
+      const frames = elapsed / 16.6667;
 
-      ctx.save();
-      ctx.globalAlpha = fadeNext;
-      ctx.drawImage(transitionTargetCanvas, 0, 0, width, height);
-      ctx.restore();
-
-      if (fadePrev > 0) {
+      const newAlpha = clamp01((frames - TRANSITION_FADE_START) / TRANSITION_FADE_SPAN);
+      if (newAlpha > 0) {
         ctx.save();
-        ctx.globalAlpha = fadePrev * 0.92;
-        ctx.drawImage(transitionCanvas, 0, 0, width, height);
+        ctx.globalAlpha = newAlpha;
+        ctx.drawImage(transitionTargetCanvas, 0, 0);
         ctx.restore();
       }
 
-      ctx.save();
-      ctx.fillStyle = `rgba(0,0,0,${(0.16 * (1 - fadeNext)).toFixed(3)})`;
-      ctx.fillRect(0, 0, width, height);
-      ctx.restore();
-
-      ctx.save();
-      ctx.globalCompositeOperation = "lighter";
-      for (const particle of stageTransition.particles) {
-        if (particle.delay > 0) {
-          particle.delay -= 1;
-          drawTransitionParticle(ctx, particle);
-          movingCount += 1;
-          continue;
+      const iconAnim = stageTransition.iconAnim;
+      if (iconAnim) {
+        const ASSEMBLE_START = 10;
+        const ASSEMBLE_SPAN = 22;
+        const DISPERSE_START = 56;
+        const DISPERSE_SPAN = 24;
+        ctx.save();
+        ctx.fillStyle = "#f0f0f0";
+        for (const p of iconAnim.particles) {
+          const tAssemble = frames - ASSEMBLE_START - p.assembleDelay;
+          const tDisperse = frames - DISPERSE_START - p.disperseDelay;
+          let dx, dy, alpha;
+          if (tDisperse > 0) {
+            if (tDisperse >= DISPERSE_SPAN) continue;
+            const k = tDisperse / DISPERSE_SPAN;
+            const e = k * k;
+            dx = p.tx + (p.ex - p.tx) * e;
+            dy = p.ty + (p.ey - p.ty) * e;
+            alpha = 1 - k;
+          } else if (tAssemble > 0) {
+            if (tAssemble < ASSEMBLE_SPAN) {
+              const k = tAssemble / ASSEMBLE_SPAN;
+              const e = 1 - Math.pow(1 - k, 3);
+              dx = p.sx + (p.tx - p.sx) * e;
+              dy = p.sy + (p.ty - p.sy) * e;
+              alpha = e;
+            } else {
+              dx = p.tx;
+              dy = p.ty;
+              alpha = 1;
+            }
+          } else {
+            continue;
+          }
+          if (alpha < 0.04) continue;
+          ctx.globalAlpha = alpha * 0.94;
+          ctx.fillRect(dx | 0, dy | 0, ICON_DOT, ICON_DOT);
         }
-        particle.vx += (particle.tx - particle.x) * 0.024;
-        particle.vy += (particle.ty - particle.y) * 0.024;
-        particle.vx *= 0.86;
-        particle.vy *= 0.86;
-        particle.x += particle.vx;
-        particle.y += particle.vy;
-        particle.alpha *= 0.997;
-        drawTransitionParticle(ctx, particle);
-        const dist = Math.hypot(particle.tx - particle.x, particle.ty - particle.y);
-        const speed = Math.hypot(particle.vx, particle.vy);
-        if (dist > 1.2 || speed > 0.12) movingCount += 1;
+        ctx.restore();
+      }
+
+      const sz = Math.max(1, TRANSITION_GRID - 1);
+      ctx.save();
+      ctx.fillStyle = "#f0f0f0";
+      let aliveCount = 0;
+      for (const p of stageTransition.particles) {
+        let alpha = 0;
+        let dy = 0;
+
+        if (p.hasFrom) {
+          const t = frames - p.fallDelay;
+          if (t < 0) {
+            alpha = 1;
+          } else if (t < TRANSITION_FALL_SPAN) {
+            const k = t / TRANSITION_FALL_SPAN;
+            alpha = 1 - k;
+            dy = k * k * 220;
+            aliveCount++;
+          }
+        }
+
+        if (p.hasTo) {
+          const t = frames - p.riseDelay;
+          if (t > 0) {
+            if (t < TRANSITION_RISE_SPAN) {
+              const k = t / TRANSITION_RISE_SPAN;
+              const a = k;
+              const ndy = -(1 - k) * 60;
+              if (a > alpha) {
+                alpha = a;
+                dy = ndy;
+              }
+              aliveCount++;
+            } else if (alpha < 1) {
+              alpha = 1;
+              dy = 0;
+            }
+          }
+        }
+
+        if (alpha < 0.04) continue;
+        ctx.globalAlpha = alpha * 0.94;
+        ctx.fillRect(p.x, p.y + dy, sz, sz);
       }
       ctx.restore();
 
-      if (t >= 1 && movingCount < stageTransition.particles.length * 0.12) {
+      if (frames > TRANSITION_MAX_FRAMES || (frames > 30 && aliveCount === 0 && newAlpha >= 1)) {
         stageTransition.active = false;
         stageTransition.particles.length = 0;
       }
     }
 
     function formatCost(n) {
-      const s = String(n);
-      const padded = s.padStart(4, "0");
-      return padded + "$";
+      return n.toLocaleString("en-US") + "$";
     }
 
     const panelEl = document.getElementById("panel");
+    const panelLabelEl = document.getElementById("panel-label");
+    const archiveLinkEl = document.getElementById("archive-link");
+    const resetBtnEl = document.getElementById("reset-btn");
     let panelInvertTimer = null;
+    let archiveLinkTimer = null;
     let hudPulse = 0;
 
     function updateHud(animate = true) {
       let val = 0;
+      let labelText = "Cost  : ";
       if (activeStage === 1) val = stage1.count;
       if (activeStage === 2) val = stage2.count;
       if (activeStage === 3) val = stage3.total;
       if (activeStage === 4) val = stage4.activity;
+      if (activeStage === 5) {
+        val = stage2.count + stage3.total + stage4.activity;
+        labelText = "Total : ";
+      }
       const newText = formatCost(val);
+      if (panelLabelEl.textContent !== labelText) panelLabelEl.textContent = labelText;
       if (newText !== panelValueEl.textContent) {
         panelEl.classList.add("inverted");
         clearTimeout(panelInvertTimer);
@@ -727,6 +819,10 @@
     }
 
     stages.forEach((stage, index) => {
+      if (index < 1 || index > 4) {
+        stage._dot = null;
+        return;
+      }
       const dot = document.createElement("button");
       dot.className = "dot";
       dot.type = "button";
@@ -750,8 +846,11 @@
       const previousStage = activeStage;
       if (!immediate) beginStageMorph(previousStage, index);
       activeStage = index;
-      stages.forEach((stage, i) => stage._dot.classList.toggle("active", i === index));
-      panelEl.style.display = index === 0 ? 'none' : 'flex';
+      stages.forEach((stage, i) => { if (stage._dot) stage._dot.classList.toggle("active", i === index); });
+      const isIntro = index === 0;
+      const isSummary = index === 5;
+      panelEl.style.display = (isIntro || isSummary) ? 'none' : 'flex';
+      resetBtnEl.classList.toggle('visible', !isIntro);
       updateHud(false);
       stage1.hand.visible = false;
       stage2.pinch.visible = false;
@@ -759,6 +858,15 @@
       stage4.blink.visible = false;
       stage4OverlayEl.classList.toggle("active", index === 4);
       stageTextEl.classList.toggle('is-intro', index === 0);
+      stageTextEl.style.display = index === 5 ? 'none' : '';
+      archiveLinkEl.classList.remove('visible');
+      if (archiveLinkTimer) { clearTimeout(archiveLinkTimer); archiveLinkTimer = null; }
+      if (index === 5) {
+        stage5.reset();
+        archiveLinkTimer = setTimeout(() => {
+          if (activeStage === 5) archiveLinkEl.classList.add('visible');
+        }, 4400);
+      }
       if (immediate) {
         setStageText(index, true);
       } else {
@@ -817,6 +925,7 @@
       stage2.resize();
       stage3.resize();
       stage4.resize();
+      stage5.resize();
     }
 
     function clamp(v, min, max) {
@@ -842,51 +951,327 @@
       return { x: (1 - lm[index].x) * width, y: lm[index].y * height };
     }
 
-    function createMoneySvg(label, base, accent, detail) {
-      const svg = `
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 200">
-          <defs><linearGradient id="bill" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="${base}"/><stop offset="100%" stop-color="${accent}"/>
-          </linearGradient></defs>
-          <rect x="10" y="10" width="340" height="180" rx="18" fill="url(#bill)" stroke="${detail}" stroke-width="8"/>
-          <rect x="34" y="30" width="292" height="140" rx="12" fill="none" stroke="${detail}" stroke-width="4" opacity="0.75"/>
-          <circle cx="92" cy="100" r="32" fill="none" stroke="${detail}" stroke-width="6" opacity="0.75"/>
-          <circle cx="268" cy="100" r="32" fill="none" stroke="${detail}" stroke-width="6" opacity="0.75"/>
-          <text x="180" y="115" text-anchor="middle" font-family="Arial, sans-serif" font-size="60" fill="${detail}" opacity="0.92">${label}</text>
-        </svg>
-      `.trim();
-      return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
-    }
-
-    function createCoinSvg(label, outer, inner, detail) {
-      const svg = `
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 220">
-          <circle cx="110" cy="110" r="98" fill="${outer}" stroke="${detail}" stroke-width="10"/>
-          <circle cx="110" cy="110" r="72" fill="${inner}" stroke="${detail}" stroke-width="5" opacity="0.92"/>
-          <text x="110" y="124" text-anchor="middle" font-family="Arial, sans-serif" font-size="54" fill="${detail}">${label}</text>
-        </svg>
-      `.trim();
-      return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
-    }
-
     function loadImage(src) {
       const img = new Image();
       img.src = src;
       return img;
     }
 
+    function rasterizeText(label, w, h, fontPx) {
+      const off = document.createElement("canvas");
+      off.width = w;
+      off.height = h;
+      const octx = off.getContext("2d");
+      octx.fillStyle = "#ffffff";
+      octx.font = `300 ${fontPx}px "Helvetica Neue", "SF Pro Display", "Inter", system-ui, sans-serif`;
+      octx.textAlign = "center";
+      octx.textBaseline = "middle";
+      octx.fillText(label, w / 2, h / 2);
+      return octx.getImageData(0, 0, w, h).data;
+    }
+
+    function createDottedCoin(label, w = 72, opts = {}) {
+      const gridSize = opts.gridSize ?? 2;
+      const dotSize = opts.dotSize ?? 1;
+      const dotColor = opts.dotColor ?? "rgba(240,240,240,0.94)";
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = w;
+      const ctx = canvas.getContext("2d");
+      const cx = w / 2, cy = w / 2;
+      const outerR = w * 0.46;
+      const innerR = w * 0.34;
+      ctx.fillStyle = dotColor;
+      for (let y = 0; y < w; y += gridSize) {
+        for (let x = 0; x < w; x += gridSize) {
+          const dx = x + gridSize / 2 - cx;
+          const dy = y + gridSize / 2 - cy;
+          const r = Math.hypot(dx, dy);
+          if (Math.abs(r - outerR) < gridSize * 0.7 || Math.abs(r - innerR) < gridSize * 0.5) {
+            ctx.fillRect(x, y, dotSize, dotSize);
+          }
+        }
+      }
+      const data = rasterizeText(label, w, w, Math.round(w * 0.32));
+      for (let y = 0; y < w; y += gridSize) {
+        for (let x = 0; x < w; x += gridSize) {
+          const i = (y * w + x) * 4;
+          if (data[i + 3] > 100) ctx.fillRect(x, y, dotSize, dotSize);
+        }
+      }
+      return canvas;
+    }
+
+    function sampleCanvasToPoints(canvas, gridSize) {
+      const w = canvas.width;
+      const h = canvas.height;
+      const ctx = canvas.getContext("2d");
+      let data;
+      try {
+        data = ctx.getImageData(0, 0, w, h).data;
+      } catch (e) {
+        return { points: [], w, h };
+      }
+      const points = [];
+      for (let y = 0; y < h; y += gridSize) {
+        for (let x = 0; x < w; x += gridSize) {
+          const i = (y * w + x) * 4;
+          if (data[i + 3] > 80) points.push({ x, y });
+        }
+      }
+      return { points, w, h };
+    }
+
+    const ICON_SIZE = 260;
+    const ICON_GRID = 4;
+    const ICON_DOT = 2;
+
+    function buildShellIconPoints(gridSize = ICON_GRID) {
+      const w = ICON_SIZE, h = ICON_SIZE;
+      const off = document.createElement("canvas");
+      off.width = w;
+      off.height = h;
+      const octx = off.getContext("2d");
+      octx.strokeStyle = "#ffffff";
+      octx.fillStyle = "#ffffff";
+      octx.lineWidth = 2.4;
+      const cx = w / 2, cy = h * 0.78;
+      const r = w * 0.4;
+      octx.beginPath();
+      octx.arc(cx, cy, r, Math.PI, 2 * Math.PI);
+      octx.stroke();
+      octx.beginPath();
+      octx.moveTo(cx - r, cy);
+      octx.bezierCurveTo(cx - r * 0.4, cy + r * 0.16, cx + r * 0.4, cy + r * 0.16, cx + r, cy);
+      octx.stroke();
+      for (let i = 1; i <= 7; i++) {
+        const a = Math.PI + (i / 8) * Math.PI;
+        octx.beginPath();
+        octx.moveTo(cx, cy);
+        octx.lineTo(cx + Math.cos(a) * r * 0.96, cy + Math.sin(a) * r * 0.96);
+        octx.stroke();
+      }
+      for (let ring = 1; ring <= 3; ring++) {
+        octx.beginPath();
+        octx.arc(cx, cy, r * (0.32 + ring * 0.2), Math.PI, 2 * Math.PI);
+        octx.stroke();
+      }
+      octx.beginPath();
+      octx.arc(cx, cy, 4, 0, Math.PI * 2);
+      octx.fill();
+      return sampleCanvasToPoints(off, gridSize);
+    }
+
+    function buildMoneyIconPoints(gridSize = ICON_GRID) {
+      const w = ICON_SIZE, h = ICON_SIZE;
+      const off = document.createElement("canvas");
+      off.width = w;
+      off.height = h;
+      const octx = off.getContext("2d");
+      octx.strokeStyle = "#ffffff";
+      octx.fillStyle = "#ffffff";
+      octx.lineWidth = 2.4;
+      const billW = w * 0.82;
+      const billH = h * 0.5;
+      const bx = (w - billW) / 2;
+      const by = (h - billH) / 2;
+      octx.beginPath();
+      octx.roundRect(bx, by, billW, billH, 12);
+      octx.stroke();
+      octx.beginPath();
+      octx.roundRect(bx + 14, by + 14, billW - 28, billH - 28, 6);
+      octx.stroke();
+      octx.font = '300 72px "Helvetica Neue", "SF Pro Display", system-ui, sans-serif';
+      octx.textAlign = "center";
+      octx.textBaseline = "middle";
+      octx.fillText("$", w / 2, h / 2);
+      const corners = [
+        [bx + 28, by + 28],
+        [bx + billW - 28, by + 28],
+        [bx + 28, by + billH - 28],
+        [bx + billW - 28, by + billH - 28]
+      ];
+      for (const [ccx, ccy] of corners) {
+        octx.beginPath();
+        octx.arc(ccx, ccy, 8, 0, Math.PI * 2);
+        octx.stroke();
+      }
+      return sampleCanvasToPoints(off, gridSize);
+    }
+
+    function buildNetworkIconPoints(gridSize = ICON_GRID) {
+      const w = ICON_SIZE, h = ICON_SIZE;
+      const off = document.createElement("canvas");
+      off.width = w;
+      off.height = h;
+      const octx = off.getContext("2d");
+      octx.strokeStyle = "#ffffff";
+      octx.fillStyle = "#ffffff";
+      octx.lineWidth = 2.4;
+      const cx = w / 2, cy = h / 2;
+      const ringR = w * 0.36;
+      const outer = [];
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2 - Math.PI / 2;
+        outer.push({ x: cx + Math.cos(a) * ringR, y: cy + Math.sin(a) * ringR });
+      }
+      for (const n of outer) {
+        octx.beginPath();
+        octx.moveTo(cx, cy);
+        octx.lineTo(n.x, n.y);
+        octx.stroke();
+      }
+      for (let i = 0; i < outer.length; i++) {
+        const a = outer[i];
+        const b = outer[(i + 1) % outer.length];
+        octx.beginPath();
+        octx.moveTo(a.x, a.y);
+        octx.lineTo(b.x, b.y);
+        octx.stroke();
+      }
+      octx.beginPath();
+      octx.arc(cx, cy, 8, 0, Math.PI * 2);
+      octx.fill();
+      for (const n of outer) {
+        octx.beginPath();
+        octx.arc(n.x, n.y, 6, 0, Math.PI * 2);
+        octx.stroke();
+      }
+      return sampleCanvasToPoints(off, gridSize);
+    }
+
+    function buildComputerIconPoints(gridSize = ICON_GRID) {
+      const w = ICON_SIZE, h = ICON_SIZE;
+      const off = document.createElement("canvas");
+      off.width = w;
+      off.height = h;
+      const octx = off.getContext("2d");
+      octx.strokeStyle = "#ffffff";
+      octx.fillStyle = "#ffffff";
+      octx.lineWidth = 2.4;
+      const monW = w * 0.78;
+      const monH = h * 0.46;
+      const monX = (w - monW) / 2;
+      const monY = h * 0.1;
+      octx.beginPath();
+      octx.roundRect(monX, monY, monW, monH, 8);
+      octx.stroke();
+      octx.beginPath();
+      octx.roundRect(monX + 12, monY + 12, monW - 24, monH - 24, 4);
+      octx.stroke();
+      for (let i = 1; i <= 4; i++) {
+        const lineY = monY + 18 + i * 18;
+        if (lineY > monY + monH - 18) break;
+        octx.beginPath();
+        octx.moveTo(monX + 24, lineY);
+        octx.lineTo(monX + monW - 24 - i * 14, lineY);
+        octx.stroke();
+      }
+      const standTop = monY + monH;
+      const standBot = h * 0.74;
+      octx.beginPath();
+      octx.moveTo(w / 2 - 14, standTop);
+      octx.lineTo(w / 2 - 32, standBot);
+      octx.lineTo(w / 2 + 32, standBot);
+      octx.lineTo(w / 2 + 14, standTop);
+      octx.closePath();
+      octx.stroke();
+      octx.beginPath();
+      octx.moveTo(w / 2 - 64, standBot + 4);
+      octx.lineTo(w / 2 + 64, standBot + 4);
+      octx.lineTo(w / 2 + 54, standBot + 12);
+      octx.lineTo(w / 2 - 54, standBot + 12);
+      octx.closePath();
+      octx.stroke();
+      const kbY = standBot + 22;
+      octx.beginPath();
+      octx.roundRect(w / 2 - 84, kbY, 168, 16, 4);
+      octx.stroke();
+      for (let i = 0; i < 9; i++) {
+        octx.fillRect(w / 2 - 76 + i * 18, kbY + 5, 6, 6);
+      }
+      return sampleCanvasToPoints(off, gridSize);
+    }
+
+    function createDottedBill(label, w = 252, h = 138, opts = {}) {
+      const gridSize = opts.gridSize ?? 2;
+      const dotSize = opts.dotSize ?? 1;
+      const dotColor = opts.dotColor ?? "rgba(240,240,240,0.94)";
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = dotColor;
+
+      const insetA = gridSize * 2;
+      const insetB = gridSize * 5;
+
+      for (let x = insetA; x <= w - insetA - gridSize; x += gridSize) {
+        ctx.fillRect(x, insetA, dotSize, dotSize);
+        ctx.fillRect(x, h - insetA - gridSize, dotSize, dotSize);
+      }
+      for (let y = insetA; y <= h - insetA - gridSize; y += gridSize) {
+        ctx.fillRect(insetA, y, dotSize, dotSize);
+        ctx.fillRect(w - insetA - gridSize, y, dotSize, dotSize);
+      }
+      for (let x = insetB; x <= w - insetB - gridSize; x += gridSize * 2) {
+        ctx.fillRect(x, insetB, dotSize, dotSize);
+        ctx.fillRect(x, h - insetB - gridSize, dotSize, dotSize);
+      }
+      for (let y = insetB; y <= h - insetB - gridSize; y += gridSize * 2) {
+        ctx.fillRect(insetB, y, dotSize, dotSize);
+        ctx.fillRect(w - insetB - gridSize, y, dotSize, dotSize);
+      }
+
+      const corners = [
+        [insetA + gridSize * 4, insetA + gridSize * 4],
+        [w - insetA - gridSize * 5, insetA + gridSize * 4],
+        [insetA + gridSize * 4, h - insetA - gridSize * 5],
+        [w - insetA - gridSize * 5, h - insetA - gridSize * 5]
+      ];
+      for (const [cx, cy] of corners) {
+        for (let i = -2; i <= 2; i++) {
+          ctx.fillRect(cx + i * gridSize, cy, dotSize, dotSize);
+          ctx.fillRect(cx, cy + i * gridSize, dotSize, dotSize);
+        }
+      }
+
+      const data = rasterizeText(label, w, h, Math.round(h * 0.42));
+      for (let y = 0; y < h; y += gridSize) {
+        for (let x = 0; x < w; x += gridSize) {
+          const i = (y * w + x) * 4;
+          if (data[i + 3] > 100) ctx.fillRect(x, y, dotSize, dotSize);
+        }
+      }
+      return canvas;
+    }
+
     const sharedShellSprites = [
-      "https://www.figma.com/api/mcp/asset/f9d24b57-6c35-4469-9bd6-440648cfddc0",
-      "https://www.figma.com/api/mcp/asset/ce4c6bbb-7e75-42b2-b045-df6184e3cda0",
-      "https://www.figma.com/api/mcp/asset/727a6219-cdab-45c7-8196-4a8a2ae41ddc",
-    ].map(loadImage);
-    const sharedMoneyAssets = [
-      { img: loadImage("./bill-1.webp"), type: "note", w: 252, h: 138, value: "1000원" },
-      { img: loadImage("./bill-2.webp"), type: "note", w: 252, h: 138, value: "10000원" },
-      { img: loadImage("./bill-3.webp"), type: "note", w: 252, h: 138, value: "50000원" },
-      { img: loadImage(createCoinSvg("1", "#c6b37e", "#efe0b4", "#5b4724")), type: "coin", w: 144, h: 144, value: "1원" },
-      { img: loadImage(createCoinSvg("5", "#b4bac2", "#e5e9ef", "#4a525c")), type: "coin", w: 144, h: 144, value: "5원" }
+      loadImage("./cd%20sub/Shell.svg"),
+      loadImage("./cd%20sub/Shell.svg"),
+      loadImage("./cd%20sub/Shell.svg")
     ];
+    const sharedMoneyAssets = [
+      { img: createDottedBill("1000", 252, 138), type: "note", w: 252, h: 138, value: "1000원" },
+      { img: createDottedBill("10000", 252, 138), type: "note", w: 252, h: 138, value: "10000원" },
+      { img: createDottedBill("50000", 252, 138), type: "note", w: 252, h: 138, value: "50000원" },
+      { img: createDottedCoin("100", 72), type: "coin", w: 72, h: 72, value: "100원" },
+      { img: createDottedCoin("500", 72), type: "coin", w: 72, h: 72, value: "500원" }
+    ];
+
+    const transitionIcons = {
+      1: buildShellIconPoints(),
+      2: buildMoneyIconPoints(),
+      3: buildComputerIconPoints(),
+      4: buildNetworkIconPoints()
+    };
+
+    const summaryIcons = {
+      1: buildShellIconPoints(3),
+      2: buildMoneyIconPoints(3),
+      3: buildComputerIconPoints(3),
+      4: buildNetworkIconPoints(3)
+    };
 
     const stage0 = {
       draw(ctx) {}
@@ -947,13 +1332,13 @@
           const liftingNow = this.hand.velocity.y < -1.4;
           const activeGrabRadius = liftingNow ? this.grabRadius * 2.1 : this.grabRadius;
           if (this.hand.fist && this.handTrail.length && handDist < activeGrabRadius) {
-            const t = this.handTrail[Math.min(this.handTrail.length - 1, 4 + (i % 6) * 2)];
+            const t = this.handTrail[Math.min(this.handTrail.length - 1, 4 + (i % 5) * 2)];
             const angle = shell.orbitSeed + i * 0.52;
             const radius = 58 * (0.5 + (i % 4) * 0.18);
             const target = { x: t.x + Math.cos(angle) * radius, y: t.y + Math.sin(angle) * radius * 0.76 };
             const lifting = liftingNow || t.vy < -1.4;
-            const catchStrength = lifting ? 0.0038 : 0.0012;
-            const velocityBlend = lifting ? 0.0032 : 0.0011;
+            const catchStrength = lifting ? 0.012 : 0.0065;
+            const velocityBlend = lifting ? 0.009 : 0.006;
             shell.vx += (target.x - shell.x) * catchStrength + t.vx * velocityBlend;
             shell.vy += (target.y - shell.y) * catchStrength + t.vy * velocityBlend;
           } else {
@@ -1058,6 +1443,8 @@
       worldBodies: [],
       walletRect: { x: 0, y: 0, w: 0, h: 0 },
       counterRect: { x: 0, y: 0, w: 0, h: 0 },
+      suctionY: 0,
+      gateY: -60,
       pinch: {
         visible: false,
         active: false,
@@ -1083,8 +1470,10 @@
           x: 0,
           y: 0,
           w: width,
-          h: Math.min(200, Math.max(160, height * 0.22))
+          h: Math.max(220, height * 0.33)
         };
+        this.suctionY = Math.max(260, height * 0.42);
+        this.gateY = -80;
         if (!this.notes.length && !this.coins.length) this.init();
         this.buildWorld();
         this.layoutWallet();
@@ -1130,13 +1519,15 @@
         this.noteDrawOrder = [...this.notes].sort((a, b) => a.depth - b.depth || a.stack - b.stack);
         for (let i = 0; i < 6; i++) {
           const asset = coinAssets[i % coinAssets.length];
-          const radius = asset.w * 0.3;
+          const radius = asset.w * 0.42;
           const body = Bodies.circle(0, 0, radius, {
-            restitution: 0.48 + (i % 2) * 0.08,
-            friction: 0.025,
-            frictionAir: 0.014,
-            density: 0.0014,
-            slop: 0.08
+            restitution: 0.32,
+            friction: 0.06,
+            frictionAir: 0.022,
+            density: 0.0011,
+            slop: 0.06,
+            inertia: Infinity,
+            inverseInertia: 0
           });
           this.coins.push({
             ...asset,
@@ -1184,13 +1575,13 @@
         const coinStartX = this.walletRect.x + this.walletRect.w * 0.66;
         const coinStartY = this.walletRect.y + this.walletRect.h * 0.44;
         this.coins.forEach((coin, index) => {
-          coin.spawnX = coinStartX + (index % 3) * 78 + (Math.random() - 0.5) * 34;
-          coin.spawnY = coinStartY + Math.floor(index / 3) * 72 + (Math.random() - 0.5) * 30;
+          coin.spawnX = coinStartX + (index % 3) * 56 + (Math.random() - 0.5) * 22;
+          coin.spawnY = coinStartY + Math.floor(index / 3) * 56 + (Math.random() - 0.5) * 20;
           if (!coin.counted && this.hold.item !== coin) {
             Body.setPosition(coin.body, { x: coin.spawnX, y: coin.spawnY });
-            Body.setVelocity(coin.body, { x: (Math.random() - 0.5) * 0.8, y: (Math.random() - 0.5) * 0.6 });
+            Body.setVelocity(coin.body, { x: (Math.random() - 0.5) * 0.6, y: (Math.random() - 0.5) * 0.4 });
             Body.setAngle(coin.body, 0);
-            Body.setAngularVelocity(coin.body, (Math.random() - 0.5) * 0.08);
+            Body.setAngularVelocity(coin.body, 0);
           }
         });
       },
@@ -1205,28 +1596,24 @@
       },
       pickCandidate(point) {
         let best = null;
-        let bestDist = 108;
+        let bestDist = Infinity;
+        const margin = 8;
         for (const note of this.topPickableNotes()) {
-          const corners = [
-            { x: note.x - note.w * 0.42, y: note.y - note.h * 0.33, corner: "left", weight: 0.86 },
-            { x: note.x + note.w * 0.42, y: note.y - note.h * 0.33, corner: "right", weight: 0.86 },
-            { x: note.x - note.w * 0.26, y: note.y - note.h * 0.22, corner: "left", weight: 1 },
-            { x: note.x + note.w * 0.26, y: note.y - note.h * 0.22, corner: "right", weight: 1 },
-            { x: note.x, y: note.y - note.h * 0.18, corner: Math.abs(point.x - note.x) < 1 ? "left" : (point.x < note.x ? "left" : "right"), weight: 1.08 }
-          ];
-          for (const c of corners) {
-            const d = Math.hypot(c.x - point.x, c.y - point.y) * c.weight;
-            if (d < bestDist) {
-              best = { item: note, kind: "note", corner: c.corner };
-              bestDist = d;
-            }
+          const halfW = note.w * 0.5 + margin;
+          const halfH = note.h * 0.5 + margin;
+          if (Math.abs(point.x - note.x) > halfW) continue;
+          if (Math.abs(point.y - note.y) > halfH) continue;
+          const d = Math.hypot(point.x - note.x, point.y - note.y);
+          if (d < bestDist) {
+            best = { item: note, kind: "note", corner: point.x < note.x ? "left" : "right" };
+            bestDist = d;
           }
         }
         for (const coin of this.coins) {
           if (coin.counted) continue;
           const pos = coin.body.position;
           const d = Math.hypot(pos.x - point.x, pos.y - point.y);
-          if (d < coin.radius * 0.75 && d < bestDist + 8) {
+          if (d < coin.radius + margin && d < bestDist + 4) {
             best = { item: coin, kind: "coin", corner: null };
             bestDist = d;
           }
@@ -1241,13 +1628,13 @@
         this.hold.pullMax = 0;
         if (candidate.kind === "note") {
           const note = candidate.item;
-          note.detached = false;
+          note.detached = true;
           note.peel = 0;
           note.restoring = false;
           note.shadowLift = 0;
           note.fadeOut = 0;
           note.fadeVY = 0;
-          note.grabCorner = candidate.corner;
+          note.grabCorner = null;
           this.hold.offset = {
             x: note.x - this.pinch.point.x,
             y: note.y - this.pinch.point.y
@@ -1316,10 +1703,15 @@
         this.count += coin.countValue;
         updateHud();
         Body.setVelocity(coin.body, {
-          x: coin.body.velocity.x * 0.36 + this.pinch.velocity.x * 0.05,
+          x: coin.body.velocity.x * 0.36,
           y: Math.min(-3.8, coin.body.velocity.y * 0.24 - 2.4)
         });
-        Body.setAngularVelocity(coin.body, coin.body.angularVelocity + (Math.random() - 0.5) * 0.18);
+        Body.setAngularVelocity(coin.body, 0);
+        if (this.hold.item === coin) {
+          this.hold.item = null;
+          this.hold.kind = null;
+          this.hold.corner = null;
+        }
       },
       spawnParticles(x, y) {
         const count = 15 + Math.floor(Math.random() * 10);
@@ -1338,32 +1730,31 @@
       },
       updateNote(note, ts) {
         const holding = this.hold.item === note && this.hold.kind === "note" && this.pinch.visible && this.pinch.closed;
-        if (holding) {
-          const pullVec = {
-            x: this.pinch.point.x - note.homeX,
-            y: this.pinch.point.y - note.homeY
-          };
-          const pullDist = Math.hypot(pullVec.x * 0.8, pullVec.y * 1.16);
-          this.hold.pullMax = Math.max(this.hold.pullMax, pullDist);
-          note.peel = clamp(pullDist / 116, 0, 1);
-          note.shadowLift = note.peel;
-          const deliberatePull = pullDist > 102 && ts - this.hold.startTs > 160;
-          if (deliberatePull) note.detached = true;
-          if (note.detached) {
-            const targetX = this.pinch.point.x + this.hold.offset.x + (this.hold.corner === "left" ? note.w * 0.08 : -note.w * 0.08);
-            const targetY = this.pinch.point.y + this.hold.offset.y;
-            note.vx += (targetX - note.x) * 0.16 + this.pinch.velocity.x * 0.11;
-            note.vy += (targetY - note.y) * 0.16 + this.pinch.velocity.y * 0.08;
-            note.angle += (((this.hold.corner === "left" ? -0.17 : 0.17) + this.pinch.velocity.x * 0.0024) - note.angle) * 0.18;
-          } else {
-            const liftX = note.homeX + pullVec.x * 0.38;
-            const liftY = note.homeY + pullVec.y * 0.24 - note.peel * 26;
-            note.x += (liftX - note.x) * 0.24;
-            note.y += (liftY - note.y) * 0.24;
-            note.angle += (((this.hold.corner === "left" ? -0.08 : 0.08) * note.peel) - note.angle) * 0.16;
-            note.vx *= 0.56;
-            note.vy *= 0.56;
+        if (!note.counted && note.y < this.suctionY && (note.detached || note.flutter > 0.02 || holding)) {
+          const pull = Math.pow(1 - clamp(note.y / this.suctionY, 0, 1), 0.6);
+          if (!holding) {
+            note.vy -= 2.4 * pull;
+            note.vx += (this.targetX - note.x) * 0.024 * pull;
           }
+          if (pointInRect({ x: note.x, y: note.y }, this.counterRect)) {
+            this.scoreNote(note);
+            return;
+          }
+        }
+        if (holding) {
+          const pullDist = Math.hypot(this.pinch.point.x - note.homeX, this.pinch.point.y - note.homeY);
+          this.hold.pullMax = Math.max(this.hold.pullMax, pullDist);
+          const flutterT = ts * 0.0085;
+          const flutterSway = Math.sin(flutterT + note.flutterPhase) * 7;
+          const flutterBob = Math.cos(flutterT * 1.3 + note.flutterPhase) * 4;
+          const targetX = this.pinch.point.x + this.hold.offset.x + flutterSway;
+          const targetY = this.pinch.point.y + this.hold.offset.y + flutterBob;
+          note.vx += (targetX - note.x) * 0.09 + this.pinch.velocity.x * 0.06;
+          note.vy += (targetY - note.y) * 0.09 + this.pinch.velocity.y * 0.05;
+          const flutterAngle = Math.sin(flutterT * 1.1 + note.flutterPhase) * 0.22
+            + this.pinch.velocity.x * 0.012
+            - clamp(this.pinch.velocity.y, -8, 8) * 0.006;
+          note.angle += (flutterAngle - note.angle) * 0.16;
         } else {
           if (note.counted) {
             note.fadeVY -= 0.08;
@@ -1428,17 +1819,32 @@
       },
       updateCoin(coin, ts) {
         const holding = this.hold.item === coin && this.hold.kind === "coin" && this.pinch.visible && this.pinch.closed;
+        const pos = coin.body.position;
+        Body.setAngle(coin.body, 0);
+        Body.setAngularVelocity(coin.body, 0);
+        if (!coin.counted && pos.y < this.suctionY && pos.x > -9000 && !holding) {
+          const pull = Math.pow(1 - clamp(pos.y / this.suctionY, 0, 1), 0.6);
+          Body.setVelocity(coin.body, {
+            x: coin.body.velocity.x * 0.92 + (this.targetX - pos.x) * 0.022 * pull,
+            y: Math.min(coin.body.velocity.y * 0.55, -2.6 * pull)
+          });
+          if (pos.y < this.gateY || pointInRect(pos, this.counterRect)) {
+            this.scoreCoin(coin, ts);
+            return;
+          }
+        }
         if (holding) {
           const target = {
             x: this.pinch.point.x + this.hold.offset.x,
             y: this.pinch.point.y + this.hold.offset.y
           };
-          const pos = coin.body.position;
           Body.setVelocity(coin.body, {
-            x: (target.x - pos.x) * 0.26 + this.pinch.velocity.x * 0.18,
-            y: (target.y - pos.y) * 0.26 + this.pinch.velocity.y * 0.14
+            x: (target.x - pos.x) * 0.32 + this.pinch.velocity.x * 0.22,
+            y: (target.y - pos.y) * 0.32 + this.pinch.velocity.y * 0.18
           });
-          Body.setAngularVelocity(coin.body, coin.body.angularVelocity + this.pinch.velocity.x * 0.0015);
+          if (pos.y < this.gateY || pointInRect(pos, this.counterRect)) {
+            this.scoreCoin(coin, ts);
+          }
         } else if (coin.counted) {
           coin.fadeOut *= 0.9;
           Body.setVelocity(coin.body, {
@@ -1482,64 +1888,17 @@
         }
       },
       drawNote(ctx, note) {
-        const sliceCount = 10;
         ctx.save();
         ctx.translate(note.x, note.y);
         ctx.rotate(note.angle);
         ctx.globalAlpha = note.counted ? note.fadeOut : 0.98;
-        const shadowAlpha = 0.12 + note.shadowLift * 0.28;
-        ctx.shadowColor = `rgba(0,0,0,${shadowAlpha})`;
-        ctx.shadowBlur = 12 + note.shadowLift * 18;
-        ctx.shadowOffsetY = 8 + note.shadowLift * 15;
-        for (let i = 0; i < sliceCount; i++) {
-          const t = i / (sliceCount - 1);
-          const sx = t * note.img.width;
-          const sw = note.img.width / sliceCount + 0.6;
-          const dx = -note.w / 2 + t * note.w;
-          const dw = note.w / sliceCount + 0.8;
-          const grabBias = note.grabCorner === "left" ? 1 - t : t;
-          const curlLift = Math.sin(t * Math.PI) * note.peel * 14 + grabBias * note.peel * 34;
-          const curlShear = (grabBias - 0.5) * note.peel * 26;
-          ctx.drawImage(
-            note.img,
-            sx, 0, sw, note.img.height,
-            dx + curlShear, -note.h / 2 - curlLift, dw, note.h + curlLift * 0.24
-          );
-        }
+        ctx.drawImage(note.img, -note.w / 2, -note.h / 2, note.w, note.h);
         ctx.restore();
       },
       draw(ctx) {
         ctx.save();
-        ctx.fillStyle = "rgba(6,6,6,0.28)";
+        ctx.fillStyle = "rgba(0,0,0,0.45)";
         ctx.fillRect(0, 0, width, height);
-
-        if (this.hold.item) {
-            const y = this.counterRect.h;
-            ctx.save();
-            ctx.shadowColor = 'rgba(255, 255, 255, 0.7)';
-            ctx.shadowBlur = 18;
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            ctx.moveTo(0, y);
-            ctx.lineTo(width, y);
-            ctx.stroke();
-            ctx.restore();
-        }
-
-        ctx.save();
-        const grad = ctx.createLinearGradient(0, this.walletRect.y, 0, this.walletRect.y + this.walletRect.h);
-        grad.addColorStop(0, 'rgba(45, 45, 45, 0.5)');
-        grad.addColorStop(1, 'rgba(25, 25, 25, 0.6)');
-        ctx.fillStyle = grad;
-        ctx.strokeStyle = "rgba(255,255,255,0.25)";
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.roundRect(this.walletRect.x, this.walletRect.y, this.walletRect.w, this.walletRect.h, 34);
-        ctx.fill();
-        ctx.stroke();
-        ctx.restore();
-
 
         for (const coin of this.coins) {
           const pos = coin.body.position;
@@ -1611,14 +1970,13 @@
         return false;
       },
       spawn(x, y) {
-        const values = [10, 50, 100];
-        const labels = ["10", "50", "100", "+"];
-        const value = values[Math.floor(Math.random() * 3)];
+        const values = [1000, 5000, 10000, 50000];
+        const value = values[Math.floor(Math.random() * values.length)];
         this.particles.push({
           x, y,
           vx: (Math.random() - 0.5) * 2,
           vy: -3 - Math.random() * 2,
-          label: Math.random() < 0.82 ? String(value) : labels[3],
+          label: Math.random() < 0.82 ? String(value) : "+",
           value,
           alpha: 0.5 + Math.random() * 0.5,
           arrived: false,
@@ -1672,9 +2030,9 @@
       vines: [],
       sparks: [],
       costAnimations: [],
+      nodes: [],
       activity: 0,
-      centerFlash: 0,
-      origin: { x: width / 2, y: height / 2 },
+      consensusFlash: 0,
       blink: {
         visible: false,
         blinkCooldownUntil: 0,
@@ -1682,54 +2040,105 @@
         leftEyeCenter: { x: width * 0.46, y: height * 0.42 },
         rightEyeCenter: { x: width * 0.54, y: height * 0.42 }
       },
-      createVine(x, y, direction) {
+      createVine(x, y, direction, opts = {}) {
+        const bright = opts.bright === true;
         return {
           path: [{ x, y }],
           direction: direction,
           speed: 1.8 + Math.random() * 2.8,
-          life: 120 + Math.random() * 80, // 수명을 늘려 화면 끝까지 도달할 확률 증가
-          lineWidth: 0.1 + Math.random() * 0.4, // 선을 더 얇게 수정
-          alpha: 0.8 + Math.random() * 0.2,
-          branchChance: 0.035 + Math.random() * 0.045,
+          life: bright ? 160 + Math.random() * 90 : 120 + Math.random() * 80,
+          lineWidth: bright ? 0.22 + Math.random() * 0.22 : 0.1 + Math.random() * 0.3,
+          alpha: bright ? 0.85 + Math.random() * 0.12 : 0.4 + Math.random() * 0.18,
+          branchChance: bright ? 0.05 + Math.random() * 0.04 : 0.018 + Math.random() * 0.022,
           length: 0,
-          maxLength: 20 + Math.random() * 40,
-          turnRate: (Math.random() - 0.5) * 0.025, // 가지가 꺾이는 정도 추가
+          maxLength: bright ? 40 + Math.random() * 50 : 18 + Math.random() * 28,
+          turnRate: (Math.random() - 0.5) * 0.025,
+          bright
         };
       },
+      centerNode: { x: 0, y: 0, pulse: 0, phase: 0 },
+      seedNodes() {
+        this.nodes = [];
+        const nodeCount = 18;
+        const cx = width / 2;
+        const cy = height / 2;
+        const exclusion = Math.min(width, height) * 0.12;
+        for (let i = 0; i < nodeCount; i++) {
+          let x, y, attempts = 0;
+          do {
+            x = width * (0.08 + Math.random() * 0.84);
+            y = height * (0.12 + Math.random() * 0.74);
+            attempts++;
+          } while (Math.hypot(x - cx, y - cy) < exclusion && attempts < 8);
+          this.nodes.push({
+            x, y,
+            pulse: 0,
+            phase: Math.random() * Math.PI * 2,
+            twinkleSpeed: 0.0006 + Math.random() * 0.0009
+          });
+        }
+      },
       resize() {
-        this.origin.x = width / 2;
-        this.origin.y = height / 2;
         this.vines.length = 0;
         this.sparks.length = 0;
         this.costAnimations.length = 0;
+        this.centerNode.x = width / 2;
+        this.centerNode.y = height / 2;
+        this.centerNode.pulse = 0;
+        this.centerNode.phase = Math.random() * Math.PI * 2;
+        this.seedNodes();
       },
       fire() {
-        this.centerFlash = 1;
+        this.consensusFlash = 1;
+        this.centerNode.pulse = 1;
         const cost = 10000 + Math.floor(Math.random() * 70001);
         this.activity += cost;
         updateHud();
 
+        for (const node of this.nodes) {
+          node.pulse = Math.max(node.pulse, 0.4 + Math.random() * 0.25);
+        }
+
         this.costAnimations.push({
-            value: `+${cost}`,
-            x: this.origin.x,
-            y: this.origin.y - 20,
-            vy: -1.2,
-            alpha: 1.0,
-            life: 75
+          value: `+${cost.toLocaleString("en-US")}`,
+          x: this.centerNode.x,
+          y: this.centerNode.y - 26,
+          vy: -1.2,
+          alpha: 1.0,
+          life: 80
         });
 
-        const numVines = 15 + Math.floor(Math.random() * 10);
-        for (let i = 0; i < numVines; i++) {
-          const angle = (i / numVines) * Math.PI * 2 + (Math.random() - 0.5) * 0.1;
-          if (this.vines.length < 300) {
-            this.vines.push(this.createVine(this.origin.x, this.origin.y, angle));
+        const centerVineCount = 12 + Math.floor(Math.random() * 6);
+        for (let i = 0; i < centerVineCount; i++) {
+          const angle = (i / centerVineCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.18;
+          if (this.vines.length < 320) {
+            this.vines.push(this.createVine(this.centerNode.x, this.centerNode.y, angle, { bright: true }));
+          }
+        }
+
+        const sourceCount = 1 + Math.floor(Math.random() * 2);
+        const sourceIndices = new Set();
+        while (sourceIndices.size < Math.min(sourceCount, this.nodes.length)) {
+          sourceIndices.add(Math.floor(Math.random() * this.nodes.length));
+        }
+        for (const idx of sourceIndices) {
+          const source = this.nodes[idx];
+          source.pulse = 0.85;
+          const numVines = 3 + Math.floor(Math.random() * 3);
+          for (let i = 0; i < numVines; i++) {
+            const angle = (i / numVines) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+            if (this.vines.length < 320) {
+              this.vines.push(this.createVine(source.x, source.y, angle));
+            }
           }
         }
       },
       update(ts) {
-        this.origin.x = width / 2;
-        this.origin.y = height / 2;
-        this.centerFlash *= 0.9;
+        this.consensusFlash *= 0.92;
+        this.centerNode.pulse *= 0.94;
+        for (const node of this.nodes) {
+          node.pulse *= 0.93;
+        }
 
         for (let i = this.vines.length - 1; i >= 0; i--) {
           const v = this.vines[i];
@@ -1791,17 +2200,62 @@
         }
       },
       draw(ctx) {
-        if (this.vines.length === 0 && this.centerFlash === 0 && this.costAnimations.length === 0) {
-            ctx.save();
-            ctx.fillStyle = `rgba(255,255,255,0.85)`;
-            ctx.beginPath();
-            ctx.arc(this.origin.x, this.origin.y, 4, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-            return;
+        const ts = performance.now();
+        ctx.save();
+
+        if (this.consensusFlash > 0.04) {
+          ctx.lineWidth = 0.3;
+          ctx.strokeStyle = `rgba(255,255,255,${(this.consensusFlash * 0.08).toFixed(3)})`;
+          const maxDist = Math.min(width, height) * 0.22;
+          for (let i = 0; i < this.nodes.length; i++) {
+            const a = this.nodes[i];
+            for (let j = i + 1; j < this.nodes.length; j++) {
+              const b = this.nodes[j];
+              const d = Math.hypot(a.x - b.x, a.y - b.y);
+              if (d > maxDist) continue;
+              ctx.beginPath();
+              ctx.moveTo(a.x, a.y);
+              ctx.lineTo(b.x, b.y);
+              ctx.stroke();
+            }
+          }
         }
 
-        ctx.save();
+        for (const node of this.nodes) {
+          const twinkle = 0.14 + 0.1 * Math.sin(ts * node.twinkleSpeed + node.phase);
+          const baseAlpha = clamp01(twinkle + node.pulse * 0.42);
+          const r = 1.2 + node.pulse * 2.8;
+          ctx.fillStyle = `rgba(220,220,220,${baseAlpha.toFixed(3)})`;
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, r, 0, Math.PI * 2);
+          ctx.fill();
+          if (node.pulse > 0.25) {
+            ctx.strokeStyle = `rgba(255,255,255,${(node.pulse * 0.32).toFixed(3)})`;
+            ctx.lineWidth = 0.6;
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, r + 4 + node.pulse * 5, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+        }
+
+        const cn = this.centerNode;
+        const centerTwinkle = 0.78 + 0.08 * Math.sin(ts * 0.0014 + cn.phase);
+        const centerR = 4.8 + cn.pulse * 4.2;
+        ctx.shadowColor = `rgba(255,255,255,${(0.45 + cn.pulse * 0.45).toFixed(3)})`;
+        ctx.shadowBlur = 10 + cn.pulse * 22;
+        ctx.fillStyle = `rgba(255,255,255,${clamp01(centerTwinkle + cn.pulse * 0.2).toFixed(3)})`;
+        ctx.beginPath();
+        ctx.arc(cn.x, cn.y, centerR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        if (cn.pulse > 0.1) {
+          ctx.strokeStyle = `rgba(255,255,255,${(cn.pulse * 0.5).toFixed(3)})`;
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.arc(cn.x, cn.y, centerR + 8 + cn.pulse * 14, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
         ctx.lineCap = "round";
         for (const v of this.vines) {
           if (v.path.length < 2) continue;
@@ -1810,9 +2264,18 @@
           for (let j = 1; j < v.path.length; j++) {
             ctx.lineTo(v.path[j].x, v.path[j].y);
           }
-          ctx.strokeStyle = `rgba(255, 255, 255, ${v.alpha * 0.7})`;
-          ctx.lineWidth = v.lineWidth;
-          ctx.stroke();
+          if (v.bright) {
+            ctx.shadowColor = `rgba(255,255,255,${(v.alpha * 0.6).toFixed(3)})`;
+            ctx.shadowBlur = 4;
+            ctx.strokeStyle = `rgba(255, 255, 255, ${Math.min(1, v.alpha).toFixed(3)})`;
+            ctx.lineWidth = v.lineWidth;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+          } else {
+            ctx.strokeStyle = `rgba(220, 220, 220, ${(v.alpha * 0.55).toFixed(3)})`;
+            ctx.lineWidth = v.lineWidth;
+            ctx.stroke();
+          }
         }
 
         ctx.globalCompositeOperation = "lighter";
@@ -1824,20 +2287,183 @@
         }
         ctx.globalCompositeOperation = "source-over";
 
-        const cf = this.centerFlash;
-        ctx.shadowColor = `rgba(255,255,255,${0.4 + cf * 0.6})`;
-        ctx.shadowBlur = 6 + cf * 25;
-        ctx.fillStyle = `rgba(255,255,255,${0.85 + cf * 0.15})`;
-        ctx.beginPath();
-        ctx.arc(this.origin.x, this.origin.y, 4 + cf * 2.5, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.shadowBlur = 0;
         for (const anim of this.costAnimations) {
-            ctx.fillStyle = `rgba(255, 255, 255, ${anim.alpha * 0.9})`;
-            ctx.font = "700 14px SFMono-Regular, Menlo, monospace";
-            ctx.textAlign = "center";
-            ctx.fillText(anim.value, anim.x, anim.y);
+          ctx.fillStyle = `rgba(255, 255, 255, ${anim.alpha * 0.95})`;
+          ctx.font = "700 14px SFMono-Regular, Menlo, monospace";
+          ctx.textAlign = "center";
+          ctx.fillText(anim.value, anim.x, anim.y);
+        }
+
+        ctx.restore();
+      }
+    };
+
+    const stage5 = {
+      particles: [],
+      ready: false,
+      cols: [],
+      iconWidth: 200,
+      titleY: 0,
+      iconCy: 0,
+      labelY: 0,
+      valueY: 0,
+      mouse: { x: null, y: null },
+      startedAt: 0,
+      reset() {
+        this.ready = false;
+        this.startedAt = performance.now();
+        this.layout();
+      },
+      resize() {
+        if (this.ready) this.layout();
+      },
+      layout() {
+        const sideMargin = Math.max(60, width * 0.05);
+        const areaW = width - sideMargin * 2;
+        const iconW = Math.min(220, areaW * 0.22, height * 0.32);
+        this.iconWidth = iconW;
+        const scale = iconW / ICON_SIZE;
+
+        this.titleY = Math.max(90, height * 0.14);
+        this.iconCy = height * 0.5;
+        this.labelY = this.iconCy + iconW * 0.55 + 36;
+        this.valueY = this.labelY + 28;
+
+        const fmtNum = (n) => `${n.toLocaleString("en-US")}$`;
+        const iconList = [
+          { icon: summaryIcons[1], label: "SHELL", finalVal: stage1.count, format: (n) => `${n}` },
+          { icon: summaryIcons[2], label: "STANDARDIZED MONEY", finalVal: stage2.count, format: fmtNum },
+          { icon: summaryIcons[3], label: "DIGITAL TRANSFER", finalVal: stage3.total, format: fmtNum },
+          { icon: summaryIcons[4], label: "VIRTUAL ASSET", finalVal: stage4.activity, format: fmtNum }
+        ];
+
+        const colCount = iconList.length;
+        const colSpan = areaW;
+        const colWidth = colSpan / colCount;
+        this.cols = [];
+        this.particles = [];
+
+        iconList.forEach((entry, i) => {
+          const cx = sideMargin + (i + 0.5) * colWidth;
+          this.cols.push({
+            cx,
+            label: entry.label,
+            finalVal: entry.finalVal,
+            format: entry.format,
+            startDelay: 600 + i * 900
+          });
+          if (!entry.icon || !entry.icon.points.length) return;
+          const renderW = entry.icon.w * scale;
+          const renderH = entry.icon.h * scale;
+          const offX = cx - renderW / 2;
+          const offY = this.iconCy - renderH / 2;
+          for (const p of entry.icon.points) {
+            const tx = offX + p.x * scale;
+            const ty = offY + p.y * scale;
+            const sa = Math.random() * Math.PI * 2;
+            const sr = 220 + Math.random() * Math.max(width, height) * 0.35;
+            this.particles.push({
+              tx, ty,
+              x: width / 2 + Math.cos(sa) * sr,
+              y: height / 2 + Math.sin(sa) * sr,
+              vx: (Math.random() - 0.5) * 3,
+              vy: (Math.random() - 0.5) * 3,
+              k: 0.04 + Math.random() * 0.024,
+              d: 0.84 + Math.random() * 0.06,
+              delay: Math.floor(Math.random() * 70),
+              delayC: 0,
+              phase: Math.random() * Math.PI * 2,
+              phSpd: 0.018 + Math.random() * 0.034,
+              alpha: 0.55 + Math.random() * 0.45,
+              bright: 190 + Math.floor(Math.random() * 65)
+            });
+          }
+        });
+
+        this.ready = true;
+      },
+      update() {
+        if (!this.ready) this.layout();
+        const mx = this.mouse.x;
+        const my = this.mouse.y;
+        const repelR = 90;
+        const repelStr = 38;
+        for (const p of this.particles) {
+          if (p.delayC < p.delay) {
+            p.delayC++;
+            p.phase += p.phSpd;
+            continue;
+          }
+          let ttx = p.tx;
+          let tty = p.ty;
+          if (mx !== null) {
+            const dx = p.x - mx;
+            const dy = p.y - my;
+            const d2 = dx * dx + dy * dy;
+            if (d2 < repelR * repelR) {
+              const d = Math.sqrt(d2) || 0.001;
+              const f = ((repelR - d) / repelR) * repelStr;
+              ttx += (dx / d) * f;
+              tty += (dy / d) * f;
+            }
+          }
+          p.vx += (ttx - p.x) * p.k;
+          p.vy += (tty - p.y) * p.k;
+          p.vx += (Math.random() - 0.5) * 0.13;
+          p.vy += (Math.random() - 0.5) * 0.13;
+          p.vx *= p.d;
+          p.vy *= p.d;
+          p.x += p.vx;
+          p.y += p.vy;
+          p.phase += p.phSpd;
+          const dx = p.x - p.tx;
+          const dy = p.y - p.ty;
+          if (mx === null && dx * dx + dy * dy < 16) {
+            p.x += Math.sin(p.phase * 1.9) * 0.3;
+            p.y += Math.cos(p.phase * 2.7) * 0.3;
+          }
+        }
+      },
+      draw(ctx) {
+        if (!this.ready) return;
+        ctx.save();
+        ctx.fillStyle = "rgba(0,0,0,0.4)";
+        ctx.fillRect(0, 0, width, height);
+
+        for (const p of this.particles) {
+          const flicker = 0.7 + 0.3 * Math.sin(p.phase * 2.4);
+          ctx.globalAlpha = p.alpha * flicker;
+          ctx.fillStyle = `rgb(${p.bright},${p.bright},${p.bright})`;
+          ctx.fillRect(p.x | 0, p.y | 0, 2, 2);
+        }
+        ctx.globalAlpha = 1;
+
+        const FONT = '"Courier New", Courier, monospace';
+        ctx.textBaseline = "middle";
+
+        ctx.fillStyle = "rgba(242,242,242,0.94)";
+        ctx.font = `700 14px ${FONT}`;
+        ctx.textAlign = "center";
+        if ("letterSpacing" in ctx) ctx.letterSpacing = "0.04em";
+        ctx.fillText("HOW IS IT MONEY", width / 2, this.titleY);
+        if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
+
+        const elapsed = performance.now() - this.startedAt;
+        const COUNT_DURATION = 900;
+        for (const col of this.cols) {
+          ctx.fillStyle = "rgba(255,255,255,0.7)";
+          ctx.font = `400 12px ${FONT}`;
+          if ("letterSpacing" in ctx) ctx.letterSpacing = "0.04em";
+          ctx.textAlign = "center";
+          ctx.fillText(col.label, col.cx, this.labelY);
+
+          const t = clamp01((elapsed - col.startDelay) / COUNT_DURATION);
+          const eased = 1 - Math.pow(1 - t, 3);
+          const animVal = Math.round(col.finalVal * eased);
+          ctx.fillStyle = "rgba(242,242,242,0.94)";
+          ctx.font = `700 18px ${FONT}`;
+          ctx.fillText(col.format(animVal), col.cx, this.valueY);
+          if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
         }
 
         ctx.restore();
@@ -1894,8 +2520,8 @@
         stage2.pinch.visible = true;
         stage2.pinch.active = true;
         stage2.pinch.mode = "single";
-        stage2.pinch.closed = thumbIndex < handScale * 0.7;
-        stage2.pinch.strength = clamp(1 - thumbIndex / (handScale * 1.45), 0, 1);
+        stage2.pinch.closed = thumbIndex < handScale * 0.95;
+        stage2.pinch.strength = clamp(1 - thumbIndex / (handScale * 1.6), 0, 1);
         stage2.pinch.point = { x: prev.x + (center.x - prev.x) * 0.5, y: prev.y + (center.y - prev.y) * 0.5 };
         stage2.pinch.velocity = { x: stage2.pinch.point.x - prev.x, y: stage2.pinch.point.y - prev.y };
       } else if (activeStage === 3) {
@@ -1993,20 +2619,21 @@
         if (activeStage === 2) stage2.draw(sceneCtx);
         if (activeStage === 3) stage3.draw(sceneCtx);
         if (activeStage === 4) stage4.draw(sceneCtx);
+        if (activeStage === 5) stage5.draw(sceneCtx);
       }
 
-      // 공통 카운팅 영역 — 정중앙 원형 그라디언트, 카운트 시 pulse
+      // 공통 카운팅 영역 — 정중앙 원형 그라디언트, 평소 옅게 + 카운트 시 pulse
       sceneCtx.shadowBlur = 0;
       sceneCtx.globalAlpha = 1;
       sceneCtx.globalCompositeOperation = "source-over";
       hudPulse *= 0.86;
-      if (hudPulse > 0.01) {
+      if (activeStage >= 1 && activeStage <= 4) {
         const cx = width / 2, cy = 0;
         const r = Math.min(width, height) * 0.38;
         const eased = hudPulse * hudPulse;
         const radGrad = sceneCtx.createRadialGradient(cx, cy, 0, cx, cy, r);
-        radGrad.addColorStop(0,   `rgba(255,255,255,${(eased * 0.28).toFixed(3)})`);
-        radGrad.addColorStop(0.5, `rgba(255,255,255,${(eased * 0.08).toFixed(3)})`);
+        radGrad.addColorStop(0,   `rgba(255,255,255,${(0.05 + eased * 0.24).toFixed(3)})`);
+        radGrad.addColorStop(0.5, `rgba(255,255,255,${(0.018 + eased * 0.07).toFixed(3)})`);
         radGrad.addColorStop(1,   'rgba(255,255,255,0)');
         sceneCtx.fillStyle = radGrad;
         sceneCtx.fillRect(0, 0, width, height);
@@ -2020,14 +2647,61 @@
       if (activeStage === 2) stage2.update();
       if (activeStage === 3) stage3.update();
       if (activeStage === 4) stage4.update(ts);
+      if (activeStage === 5) stage5.update();
       drawStage(ts);
       runVision(ts);
       requestAnimationFrame(tick);
     }
 
+    function resetExperience() {
+      stage1.count = 0;
+      stage1.shells.length = 0;
+      stage1.handTrail.length = 0;
+      stage1.init();
+
+      for (const coin of stage2.coins) {
+        if (coin.body && coin.body.world) {
+          World.remove(stage2.engine.world, coin.body);
+        }
+      }
+      stage2.notes.length = 0;
+      stage2.coins.length = 0;
+      stage2.particles.length = 0;
+      stage2.count = 0;
+      stage2.hold.item = null;
+      stage2.hold.kind = null;
+      stage2.hold.corner = null;
+      stage2.resize();
+
+      stage3.total = 0;
+      stage3.particles.length = 0;
+
+      stage4.activity = 0;
+      stage4.vines.length = 0;
+      stage4.sparks.length = 0;
+      stage4.costAnimations.length = 0;
+      stage4.consensusFlash = 0;
+      if (stage4.centerNode) stage4.centerNode.pulse = 0;
+      for (const node of stage4.nodes) node.pulse = 0;
+
+      goToStage(0, { immediate: true });
+      updateHud(false);
+    }
+
+    document.getElementById("reset-btn").addEventListener("click", resetExperience);
+
     resize();
     goToStage(0, { immediate: true });
     window.addEventListener("resize", resize);
+
+    window.addEventListener("pointermove", (e) => {
+      stage5.mouse.x = e.clientX;
+      stage5.mouse.y = e.clientY;
+    }, { passive: true });
+    window.addEventListener("pointerleave", () => {
+      stage5.mouse.x = null;
+      stage5.mouse.y = null;
+    });
 
     setupCamera()
       .catch(() => {});
