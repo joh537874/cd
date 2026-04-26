@@ -798,6 +798,78 @@
       letter-spacing: 0.04em;
     }
 
+    /* Sparkline lollipop bars (CBDC ranking) */
+    .spark-list { display: flex; flex-direction: column; }
+    .spark-row {
+      display: grid;
+      grid-template-columns: 220px 1fr 56px;
+      gap: 18px;
+      align-items: center;
+      padding: 11px 0;
+      border-bottom: 1px solid var(--line2);
+    }
+    .spark-row:last-child { border-bottom: none; }
+    .spark-rank {
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      color: var(--dim);
+      margin-right: 10px;
+    }
+    .spark-name {
+      font-size: 11px;
+      color: var(--text);
+      letter-spacing: 0.04em;
+    }
+    .spark-track {
+      position: relative;
+      height: 16px;
+    }
+    .spark-track::before {
+      content: '';
+      position: absolute;
+      left: 0; right: 0;
+      top: 50%;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .spark-fill {
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%) scaleX(0);
+      transform-origin: left center;
+      height: 1px;
+      background: rgba(232, 232, 232, 0.92);
+      transition: transform 1100ms cubic-bezier(.6, .05, .3, 1);
+    }
+    .spark-fill.in { transform: translateY(-50%) scaleX(1); transition-delay: 220ms; }
+    .spark-dot {
+      position: absolute;
+      top: 50%;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: rgba(242, 242, 242, 0.95);
+      transform: translate(50%, -50%) scale(0);
+      transition: transform 380ms cubic-bezier(.4, 1.7, .6, 1);
+    }
+    .spark-fill.in + .spark-dot,
+    .spark-fill.in ~ .spark-dot {
+      transform: translate(50%, -50%) scale(1);
+      transition-delay: 1180ms;
+    }
+    .spark-pct {
+      font-size: 11px;
+      color: var(--text);
+      letter-spacing: 0.04em;
+      text-align: right;
+    }
+    @media (max-width: 760px) {
+      .spark-row { grid-template-columns: 1fr 56px; }
+      .spark-row .spark-rank { display: none; }
+      .spark-name { grid-column: 1 / -1; margin-bottom: 4px; }
+    }
+
     /* Vertical bar chart (column comparison) */
     .vbars {
       display: flex;
@@ -2395,13 +2467,37 @@
       <p class="body-text" data-ref="011">
         134개국이 CBDC를 연구 중이며 6개국이 이미 출시했다(2024). 2030년까지 주요 통화권의 CBDC 도입 가능성을 분석가들의 컨센서스로 추정한 결과:
       </p>
-      <div class="vbars" data-ref="011">
-        <div class="vbar"><span class="vbar-val">96%</span><div class="vbar-track"><div class="vbar-fill" data-h="96"></div></div><span class="vbar-cap">CHN</span></div>
-        <div class="vbar"><span class="vbar-val">78%</span><div class="vbar-track"><div class="vbar-fill" data-h="78"></div></div><span class="vbar-cap">EUR</span></div>
-        <div class="vbar"><span class="vbar-val">62%</span><div class="vbar-track"><div class="vbar-fill" data-h="62"></div></div><span class="vbar-cap">KOR</span></div>
-        <div class="vbar"><span class="vbar-val">54%</span><div class="vbar-track"><div class="vbar-fill" data-h="54"></div></div><span class="vbar-cap">GBR</span></div>
-        <div class="vbar"><span class="vbar-val">46%</span><div class="vbar-track"><div class="vbar-fill" data-h="46"></div></div><span class="vbar-cap">JPN</span></div>
-        <div class="vbar"><span class="vbar-val">34%</span><div class="vbar-track"><div class="vbar-fill" data-h="34"></div></div><span class="vbar-cap">USA</span></div>
+      <div class="spark-list" data-ref="011">
+        <div class="spark-row">
+          <div><span class="spark-rank">01</span><span class="spark-name">중국 e-CNY</span></div>
+          <div class="spark-track"><div class="spark-fill" data-w="96"></div><div class="spark-dot" data-pos="96"></div></div>
+          <span class="spark-pct">96%</span>
+        </div>
+        <div class="spark-row">
+          <div><span class="spark-rank">02</span><span class="spark-name">유럽 디지털 유로</span></div>
+          <div class="spark-track"><div class="spark-fill" data-w="78"></div><div class="spark-dot" data-pos="78"></div></div>
+          <span class="spark-pct">78%</span>
+        </div>
+        <div class="spark-row">
+          <div><span class="spark-rank">03</span><span class="spark-name">한국 한국CBDC</span></div>
+          <div class="spark-track"><div class="spark-fill" data-w="62"></div><div class="spark-dot" data-pos="62"></div></div>
+          <span class="spark-pct">62%</span>
+        </div>
+        <div class="spark-row">
+          <div><span class="spark-rank">04</span><span class="spark-name">영국 디지털 파운드</span></div>
+          <div class="spark-track"><div class="spark-fill" data-w="54"></div><div class="spark-dot" data-pos="54"></div></div>
+          <span class="spark-pct">54%</span>
+        </div>
+        <div class="spark-row">
+          <div><span class="spark-rank">05</span><span class="spark-name">일본 디지털 엔</span></div>
+          <div class="spark-track"><div class="spark-fill" data-w="46"></div><div class="spark-dot" data-pos="46"></div></div>
+          <span class="spark-pct">46%</span>
+        </div>
+        <div class="spark-row">
+          <div><span class="spark-rank">06</span><span class="spark-name">미연준 디지털 달러</span></div>
+          <div class="spark-track"><div class="spark-fill" data-w="34"></div><div class="spark-dot" data-pos="34"></div></div>
+          <span class="spark-pct">34%</span>
+        </div>
       </div>
       <div class="entry-meta mt-10">출처 합성 — Atlantic Council CBDC Tracker 2024, BIS Working Paper 2024-880, Yale 정책 분석</div>
 
@@ -2736,6 +2832,12 @@
   document.querySelectorAll('.vbar-fill[data-h]').forEach((el) => {
     el.style.height = el.dataset.h + '%';
   });
+  document.querySelectorAll('.spark-fill[data-w]').forEach((el) => {
+    el.style.width = el.dataset.w + '%';
+  });
+  document.querySelectorAll('.spark-dot[data-pos]').forEach((el) => {
+    el.style.left = el.dataset.pos + '%';
+  });
   document.querySelectorAll('.donut-seg[data-p]').forEach((el) => {
     el.style.setProperty('--p', el.dataset.p);
   });
@@ -2798,8 +2900,8 @@
       for (let i = 0; i < len; i++) {
         queue.push({
           to: next[i],
-          start: Math.floor(Math.random() * 18),
-          end: 20 + Math.floor(Math.random() * 22),
+          start: Math.floor(Math.random() * 12),
+          end: 14 + Math.floor(Math.random() * 16),
           char: ""
         });
       }
@@ -2933,7 +3035,7 @@
         else entry.target.classList.remove('in');
       });
     }, { threshold: 0.4, rootMargin: '0px 0px -6% 0px' });
-    document.querySelectorAll('.stat-bar-fill, .cb-fill, .reason-fill, .donut, .vbar-fill, .linegraph').forEach((el) => pending.push([barIO, el]));
+    document.querySelectorAll('.stat-bar-fill, .cb-fill, .reason-fill, .donut, .vbar-fill, .linegraph, .spark-fill').forEach((el) => pending.push([barIO, el]));
 
     // ── Dots ratings: pop in box-by-box (띵띵띵) ──────────────────
     const dotTimers = new WeakMap();
