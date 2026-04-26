@@ -672,7 +672,7 @@
       body {
         cursor: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cline x1='12' y1='3' x2='12' y2='21' stroke='white' stroke-width='1.4'/%3E%3Cline x1='3' y1='12' x2='21' y2='12' stroke='white' stroke-width='1.4'/%3E%3C/svg%3E") 12 12, crosshair;
       }
-      a, button, .sidebar-cta, .nav-item, [role="button"] {
+      a, button, .sidebar-cta, .nav-item, [role="button"], summary {
         cursor: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpolyline points='8,4 16,12 8,20' stroke='white' stroke-width='1.6' fill='none' stroke-linecap='square' stroke-linejoin='miter'/%3E%3C/svg%3E") 12 12, pointer;
       }
       [data-ref] {
@@ -701,6 +701,318 @@
       transform: translateY(-8px);
     }
     .dud { color: rgba(165, 165, 165, 0.52); }
+
+    /* ── FINDING CARDS (Section 05-C) — vertical, breathing layout ── */
+    .findings { display: flex; flex-direction: column; }
+    .finding-card {
+      padding: 22px 0 26px;
+      border-bottom: 1px solid var(--line2);
+    }
+    .finding-card:last-child { border-bottom: none; }
+    .finding-card header {
+      display: grid;
+      grid-template-columns: 52px 1fr;
+      gap: 0 16px;
+      align-items: baseline;
+      margin-bottom: 14px;
+    }
+    .finding-num {
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      color: var(--dim);
+    }
+    .finding-title {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text);
+    }
+    .finding-desc {
+      font-size: 11px;
+      line-height: 1.85;
+      color: var(--muted);
+      padding-left: 68px;
+      margin-bottom: 16px;
+      max-width: 720px;
+    }
+    .finding-desc strong { color: var(--text); }
+    .finding-viz {
+      padding-left: 68px;
+      padding-right: 8px;
+      margin-bottom: 12px;
+    }
+    .finding-meta {
+      padding-left: 68px;
+      font-size: 10px;
+      color: var(--dim);
+      letter-spacing: 0.06em;
+    }
+    .finding-delta {
+      font-size: 10px;
+      color: var(--dim);
+      letter-spacing: 0.04em;
+      padding-top: 6px;
+      margin-top: 4px;
+      border-top: 1px dashed var(--line2);
+    }
+    @media (max-width: 760px) {
+      .finding-card header { grid-template-columns: 1fr; gap: 4px; }
+      .finding-desc, .finding-viz, .finding-meta { padding-left: 0; }
+    }
+
+    /* Comparison bars used inside finding-viz */
+    .comp-bars { display: flex; flex-direction: column; gap: 7px; }
+    .cb-row {
+      display: grid;
+      grid-template-columns: 60px 1fr 56px;
+      gap: 10px;
+      align-items: center;
+      font-size: 10px;
+    }
+    .cb-label { color: var(--dim); text-transform: uppercase; font-size: 9px; letter-spacing: 0.08em; }
+    .cb-track { height: 5px; background: rgba(200,200,200,0.12); position: relative; }
+    .cb-fill {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      background: rgba(220,220,220,0.78);
+      width: var(--w, 0%);
+      transform: scaleX(0);
+      transform-origin: left center;
+      transition: transform 1000ms cubic-bezier(.6,.05,.3,1);
+    }
+    .cb-fill.in { transform: scaleX(1); transition-delay: 220ms; }
+    .cb-val { color: var(--text); text-align: right; font-size: 10px; letter-spacing: 0.04em; }
+    .cb-delta {
+      font-size: 9px;
+      color: var(--dim);
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px dashed var(--line2);
+      letter-spacing: 0.04em;
+    }
+
+    /* SVG donut chart */
+    .donut-stack { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .donut {
+      width: 90px;
+      height: 90px;
+      display: block;
+      flex-shrink: 0;
+    }
+    .donut-lg { width: 116px; height: 116px; }
+    .donut-bg { fill: none; stroke: rgba(255,255,255,0.10); stroke-width: 2.4; }
+    .donut-seg {
+      fill: none;
+      stroke: rgba(232,232,232,0.92);
+      stroke-width: 2.4;
+      stroke-linecap: butt;
+      stroke-dasharray: 0 100;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+      transition: stroke-dasharray 1100ms cubic-bezier(.6,.05,.3,1);
+    }
+    .donut.in .donut-seg {
+      stroke-dasharray: var(--p, 0) 100;
+      transition-delay: 250ms;
+    }
+    .donut-label {
+      font-size: 6.4px;
+      font-weight: 700;
+      text-anchor: middle;
+      dominant-baseline: middle;
+      fill: rgba(242,242,242,0.94);
+      font-family: var(--mono);
+      letter-spacing: 0;
+    }
+    .donut-sub {
+      font-size: 2.5px;
+      text-anchor: middle;
+      fill: var(--dim);
+      font-family: var(--mono);
+      letter-spacing: 0.18em;
+    }
+    .donut-cap {
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      color: var(--dim);
+      text-transform: uppercase;
+    }
+
+    /* ── TRUST-BREAK COMPARISON (Section 04) — Bretton vs Floating, stacked ── */
+    .tb-block { display: flex; flex-direction: column; }
+    .tb-block-axis {
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--line2);
+    }
+    .tb-before-block .tb-block-axis { color: var(--dim); }
+    .tb-after-block  .tb-block-axis { color: var(--text); }
+
+    .tb-row {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      gap: 16px;
+      align-items: baseline;
+      padding: 11px 0;
+      border-bottom: 1px solid var(--line2);
+    }
+    .tb-row:last-child { border-bottom: none; }
+    .tb-key {
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--dim);
+    }
+    .tb-val {
+      font-size: 12px;
+      color: var(--text);
+      letter-spacing: 0.04em;
+    }
+    .tb-before-block .tb-val {
+      color: rgba(165, 165, 165, 0.5);
+      text-decoration: line-through;
+      text-decoration-color: rgba(255, 255, 255, 0.18);
+      text-decoration-thickness: 1px;
+    }
+
+    .tb-shock-bar {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 22px 0;
+    }
+    .tb-shock-bar::before,
+    .tb-shock-bar::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--line);
+    }
+    .tb-axis-shock {
+      font-size: 10px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--text);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 760px) {
+      .tb-row { grid-template-columns: 1fr; gap: 4px; padding: 12px 0; }
+    }
+
+    /* ── ANOMALY CARDS (Section 06) — flat accordion + icon ── */
+    .anomalies { display: flex; flex-direction: column; }
+    .anomaly-card { border-bottom: 1px solid var(--line2); }
+    .anomaly-card:last-child { border-bottom: none; }
+    .anomaly-summary {
+      display: grid;
+      grid-template-columns: 52px 1fr auto 14px;
+      gap: 0 16px;
+      align-items: center;
+      padding: 16px 0;
+      cursor: pointer;
+      list-style: none;
+      user-select: none;
+    }
+    .anomaly-summary::-webkit-details-marker { display: none; }
+    .anomaly-summary::marker { content: ''; }
+    .anomaly-num {
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      color: var(--dim);
+    }
+    .anomaly-title {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text);
+    }
+    .anomaly-meta {
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+      text-align: right;
+      min-width: 0;
+    }
+    .anomaly-toggle {
+      font-family: var(--mono);
+      font-size: 14px;
+      color: var(--dim);
+      text-align: center;
+      transition: transform 260ms cubic-bezier(.4,1.6,.6,1), color 200ms ease;
+    }
+    .anomaly-card[open] .anomaly-toggle {
+      transform: rotate(45deg);
+      color: var(--text);
+    }
+    .anomaly-body {
+      padding: 0 0 18px 68px;
+      font-size: 11px;
+      line-height: 1.7;
+      color: var(--muted);
+      animation: anomaly-slide 280ms cubic-bezier(.4,.0,.2,1);
+    }
+    .anomaly-body p { margin: 10px 0; }
+    .anomaly-body p strong { color: var(--text); }
+    .anomaly-body p em { color: rgba(255, 255, 255, 0.78); font-style: italic; }
+    .anomaly-source {
+      display: block;
+      font-size: 10px;
+      color: var(--dim);
+      letter-spacing: 0.06em;
+      margin-top: 10px;
+    }
+    .anomaly-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 6px;
+      margin-top: 10px;
+    }
+    .anomaly-tags span {
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--dim);
+      border: 1px solid var(--line);
+      padding: 1px 6px;
+    }
+    @keyframes anomaly-slide {
+      from { opacity: 0; transform: translateY(-3px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @media (max-width: 760px) {
+      .anomaly-summary { grid-template-columns: 50px 1fr 14px; gap: 0 12px; padding: 14px 0; }
+      .anomaly-meta { display: none; }
+      .anomaly-body { padding: 0 0 14px 0; }
+    }
+
+    /* Reasons mini-bars (R-004) */
+    .reasons { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 0; }
+    .reason-row {
+      display: grid;
+      grid-template-columns: 76px 1fr 36px;
+      gap: 8px;
+      align-items: center;
+      font-size: 9px;
+    }
+    .reason-label { color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em; }
+    .reason-track { height: 4px; background: rgba(200,200,200,0.12); position: relative; }
+    .reason-fill {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      background: rgba(220,220,220,0.78);
+      width: var(--w, 0%);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 900ms cubic-bezier(.6,.05,.3,1);
+    }
+    .reason-fill.in { transform: scaleX(1); transition-delay: 280ms; }
+    .reason-val { color: var(--text); text-align: right; font-size: 9px; }
 
     /* ── UTILITY CLASSES (replace inline styles) ── */
     .mb-6  { margin-bottom: 6px; }
@@ -772,6 +1084,9 @@
       border-left-color: rgba(255, 255, 255, 0.28);
       padding-left: 12px;
     }
+    .finding-card[data-ref]:hover,
+    .anomaly-card[data-ref]:hover,
+    .trust-break[data-ref]:hover { background: transparent; }
     .ref-tooltip {
       position: fixed;
       z-index: 10000;
@@ -1351,46 +1666,25 @@
 
       <div class="rule"></div>
 
-      <div class="grid-2">
-        <div>
-          <div class="label">Before — 브레턴우즈 체제 (1944~1971)</div>
-          <br>
-          <div class="stat-row">
-            <span class="stat-label">달러의 담보</span>
-            <span class="stat-val c-text">금 (Gold)</span>
-          </div>
-          <div class="stat-row">
-            <span class="stat-label">금 1온스 = 달러</span>
-            <span class="stat-val c-text">$35.00 (고정)</span>
-          </div>
-          <div class="stat-row">
-            <span class="stat-label">달러의 본질</span>
-            <span class="stat-val c-text">금 교환 증서</span>
-          </div>
-          <div class="stat-row">
-            <span class="stat-label">가치의 근거</span>
-            <span class="stat-val c-text">물리적 금 보유량</span>
-          </div>
+      <div class="trust-break" data-ref="005,006,007">
+        <div class="tb-block tb-before-block">
+          <div class="tb-block-axis">Bretton Woods · 1944 – 1971</div>
+          <div class="tb-row"><span class="tb-key">DOLLAR BACKING</span><span class="tb-val">금 (Gold)</span></div>
+          <div class="tb-row"><span class="tb-key">1 OZ → DOLLARS</span><span class="tb-val">$35.00 (FIXED)</span></div>
+          <div class="tb-row"><span class="tb-key">DOLLAR ESSENCE</span><span class="tb-val">금 교환 증서</span></div>
+          <div class="tb-row"><span class="tb-key">VALUE BASIS</span><span class="tb-val">물리적 금 보유량</span></div>
         </div>
-        <div>
-          <div class="label">After — 변동환율제 (1971~현재)</div>
-          <br>
-          <div class="stat-row">
-            <span class="stat-label">달러의 담보</span>
-            <span class="stat-val c-dim">없음 (None)</span>
-          </div>
-          <div class="stat-row">
-            <span class="stat-label">금 1온스 = 달러</span>
-            <span class="stat-val c-muted">시장 변동 (2024: ~$2,300)</span>
-          </div>
-          <div class="stat-row">
-            <span class="stat-label">달러의 본질</span>
-            <span class="stat-val c-muted">미국 정부에 대한 신뢰</span>
-          </div>
-          <div class="stat-row">
-            <span class="stat-label">가치의 근거</span>
-            <span class="stat-val c-muted">집단적 합의</span>
-          </div>
+
+        <div class="tb-shock-bar">
+          <span class="tb-axis-shock">⚡ 1971 . 08 . 15</span>
+        </div>
+
+        <div class="tb-block tb-after-block">
+          <div class="tb-block-axis">Floating · 1971 – 현재</div>
+          <div class="tb-row"><span class="tb-key">DOLLAR BACKING</span><span class="tb-val">없음 (None)</span></div>
+          <div class="tb-row"><span class="tb-key">1 OZ → DOLLARS</span><span class="tb-val">$2,300+ · 시장 변동</span></div>
+          <div class="tb-row"><span class="tb-key">DOLLAR ESSENCE</span><span class="tb-val">미국 정부에 대한 신뢰</span></div>
+          <div class="tb-row"><span class="tb-key">VALUE BASIS</span><span class="tb-val">집단적 합의</span></div>
         </div>
       </div>
 
@@ -1492,37 +1786,115 @@
 
       <div class="label mb-14">05-C &nbsp; Key Research Findings</div>
 
-      <div class="entry">
-        <div class="entry-num">[R-001]</div>
-        <div>
-          <div class="entry-title">Thanksgiving Party Experiment</div>
-          <div class="entry-body">참가자들에게 추수감사절 파티 준비를 맡겼을 때 — 카드 사용 시 $175 예산, 현금 사용 시 $145 예산. 같은 행사, 같은 사람, 다른 지불 방식 → <strong>30% 차이.</strong></div>
-          <div class="entry-meta">Prelec & Simester, 2001 / MIT Sloan</div>
-        </div>
-      </div>
-      <div class="entry">
-        <div class="entry-num">[R-002]</div>
-        <div>
-          <div class="entry-title">Grocery Basket Study</div>
-          <div class="entry-body">신용카드로 결제한 장바구니에는 아이스크림, 사탕, 감자칩 등 충동 구매 품목이 현금 결제자보다 유의미하게 많았다. 건강 식품 비율은 현금 결제 시 더 높음.</div>
-          <div class="entry-meta">Avni Shah et al., 2016 / Journal of Consumer Research</div>
-        </div>
-      </div>
-      <div class="entry">
-        <div class="entry-num">[R-003]</div>
-        <div>
-          <div class="entry-title">fMRI Neural Evidence</div>
-          <div class="entry-body">현금 지출 시 뇌의 insula(섬엽, 고통 처리 영역)가 활성화됨. 카드·스마트폰 결제 시 이 반응이 현저히 감소. 결제 방식이 신경학적 수준에서 소비 행동을 변화시킴.</div>
-          <div class="entry-meta">Madzharov et al., 2019 / Frontiers in Neuroscience</div>
-        </div>
-      </div>
-      <div class="entry">
-        <div class="entry-num">[R-004]</div>
-        <div>
-          <div class="entry-title">ECB Privacy Survey 2024</div>
-          <div class="entry-body">유로존 5만 명 소비자 대상. 현금의 가장 큰 장점으로 <strong>익명성·프라이버시(41%)</strong>를 1위로 꼽음. 2위: 지출 인식 제고(35%). 디지털 결제 증가에도 불구, 2/3가 현금 유지를 원함.</div>
-          <div class="entry-meta">ECB SPACE Report, 2024</div>
-        </div>
+      <div class="findings">
+
+        <article class="finding-card" data-ref="013">
+          <header>
+            <span class="finding-num">[R-001]</span>
+            <span class="finding-title">Thanksgiving Party Experiment</span>
+          </header>
+          <p class="finding-desc">
+            MIT 마케팅 연구진이 2001년 진행한 고전적 실험. 참가자들에게 <strong>같은 추수감사절 파티 예산</strong>을 짜게 하면서, 결제 수단만 다르게 줬다 — 한쪽은 카드, 다른 쪽은 현금. 결과는 카드 그룹 평균 <strong>$175</strong>, 현금 그룹 평균 <strong>$145</strong>. 같은 행사·같은 인구 통계임에도 약 <strong>21%의 지출 차이</strong>가 발생했다. 결제 방식이 "얼마를 쓸 수 있는가"에 대한 인식 자체를 바꾼다는 첫 정량 증거였다.
+          </p>
+          <div class="finding-viz">
+            <div class="stat-row">
+              <span class="stat-label">현금 그룹</span>
+              <div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="83"></div></div><span class="stat-val">$145</span></div>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">카드 그룹</span>
+              <div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="100"></div></div><span class="stat-val">$175</span></div>
+            </div>
+            <div class="finding-delta">+$30 차이 — 카드 결제 시 평균 지출 <strong>+20.7%</strong></div>
+          </div>
+          <div class="finding-meta">Prelec &amp; Simester, 2001 — MIT Sloan</div>
+        </article>
+
+        <article class="finding-card" data-ref="013">
+          <header>
+            <span class="finding-num">[R-002]</span>
+            <span class="finding-title">Grocery Basket Composition</span>
+          </header>
+          <p class="finding-desc">
+            실제 슈퍼마켓 영수증 수만 건을 분석한 연구. <strong>같은 매장, 같은 가격, 다른 결제 수단</strong>이라는 단 하나의 변수로 장바구니 구성을 비교했다. 신용카드 결제 영수증에는 아이스크림·사탕·감자칩 같은 <em>충동 구매 품목</em>이 유의미하게 많았고, 현금 결제 장바구니에선 채소·과일 같은 건강 식품의 비율이 더 높았다. 결제의 마찰이 적을수록 절제도 함께 사라진다.
+          </p>
+          <div class="finding-viz">
+            <div class="stat-row">
+              <span class="stat-label">현금 결제</span>
+              <div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="68"></div></div><span class="stat-val">건강 식품 68%</span></div>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">카드 결제</span>
+              <div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="44"></div></div><span class="stat-val">건강 식품 44%</span></div>
+            </div>
+            <div class="finding-delta">−24 %p — 카드 사용자가 더 충동적</div>
+          </div>
+          <div class="finding-meta">Avni Shah et al., 2016 — Journal of Consumer Research</div>
+        </article>
+
+        <article class="finding-card" data-ref="014">
+          <header>
+            <span class="finding-num">[R-003]</span>
+            <span class="finding-title">Insula Activation — fMRI Evidence</span>
+          </header>
+          <p class="finding-desc">
+            뇌 영상 연구는 <strong>"결제의 고통(pain of paying)"이 은유가 아님</strong>을 보여줬다. 현금을 지불할 때 뇌의 <em>섬엽(insula)</em> — 신체적 통증을 처리하는 바로 그 회로 — 이 가장 강하게 활성화됐다. 체크카드에서는 절반, 신용카드에서는 1/3, 모바일 페이에서는 1/4 수준까지 떨어졌다. 디지털 결제는 "돈이 빠져나간다"는 신경학적 자각 자체를 무뎌지게 만든다.
+          </p>
+          <div class="finding-viz">
+            <div class="stat-row">
+              <span class="stat-label">현금</span>
+              <div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="100"></div></div><span class="stat-val">100% (기준)</span></div>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">체크카드</span>
+              <div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="55"></div></div><span class="stat-val">55%</span></div>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">신용카드</span>
+              <div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="38"></div></div><span class="stat-val">38%</span></div>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">모바일 페이</span>
+              <div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="22"></div></div><span class="stat-val">22%</span></div>
+            </div>
+            <div class="finding-delta">현금 ↔ 모바일 페이 — 섬엽 활성도 <strong>4.5배 차이</strong></div>
+          </div>
+          <div class="finding-meta">Madzharov et al., 2019 — Frontiers in Neuroscience</div>
+        </article>
+
+        <article class="finding-card" data-ref="010">
+          <header>
+            <span class="finding-num">[R-004]</span>
+            <span class="finding-title">ECB SPACE 2024 — Why Keep Cash?</span>
+          </header>
+          <p class="finding-desc">
+            유럽중앙은행이 매년 진행하는 결제 행태 조사. 2024년 유로존 <strong>5만 명</strong> 응답자 중 <strong>67%</strong>가 "현금 결제는 사라지지 말아야 한다"고 답했다. 디지털 결제 비중이 80%를 넘은 시대임에도 다수가 현금 유지를 원하는 이유는 — 익명성·프라이버시(41%), 지출 자각 제고(35%), 즉시 결제 완료(30%), 더 많은 곳에서 수락(28%) 순이었다. 위 R-003에서 본 신경학적 효과를 사람들이 본능적으로 알고 있다는 신호.
+          </p>
+          <div class="finding-viz">
+            <div class="stat-row">
+              <span class="stat-label">현금 유지 지지</span>
+              <div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="67"></div></div><span class="stat-val">67%</span></div>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">익명성·프라이버시</span>
+              <div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="41"></div></div><span class="stat-val">41%</span></div>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">지출 자각 제고</span>
+              <div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="35"></div></div><span class="stat-val">35%</span></div>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">즉시 결제 완료</span>
+              <div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="30"></div></div><span class="stat-val">30%</span></div>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">더 많은 곳 수락</span>
+              <div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="28"></div></div><span class="stat-val">28%</span></div>
+            </div>
+          </div>
+          <div class="finding-meta">European Central Bank — SPACE Report 2024</div>
+        </article>
+
       </div>
 
       <div class="rule"></div>
@@ -1591,82 +1963,108 @@
         특히 야프 섬의 라이 스톤은 현대 암호화폐를 이해하는 가장 투명한 비유다. 돌은 움직이지 않고, 바다 밑에 가라앉은 돌도 여전히 유효하며, 소유권은 오직 공동체의 집단 기억 속에 있다. 이는 <strong>분산 원장(distributed ledger)</strong>의 고대판이며, 비트코인 블록체인이 하는 일 — 누가 무엇을 소유하는지에 대한 합의를 참여자 전원이 공유하는 것 — 과 구조적으로 동일하다. 3천 년 전의 미크로네시아 섬주민들은 21세기 암호학자들이 재발견한 원리를 이미 실천하고 있었다. 돈의 실체는 돌이 아니라 기록이었고, 기록은 머릿속에 있었다.
       </p>
 
-      <div class="entry">
-        <div class="entry-num">[A-001]</div>
-        <div>
-          <div class="entry-title">Yap Island Rai Stones</div>
-          <div class="entry-body">
-            미크로네시아 야프 섬의 석회석 원판 화폐. 최대 직경 <strong>3.6m, 무게 4,000kg.</strong> 팔라우에서 채석해 카누로 운반 — 최대 2주 소요. 크기가 클수록 가치가 높다.<br><br>
-            가장 놀라운 점: <strong>돌은 움직이지 않는다.</strong> 소유권만 구두로 이전된다. 마을 전체가 누가 어떤 돌을 소유하는지 알고 있다. 거래 후에도 돌은 그 자리에 있다.<br><br>
-            더 놀라운 사례: 운반 도중 폭풍에 돌이 바다에 가라앉았다. 섬 사람들은 그 돌을 여전히 유효한 화폐로 인정했다. 아무도 본 적 없는 바다 밑 돌이 오늘날도 누군가의 재산이다.
-          </div>
-          <div class="entry-meta">출처: Bank of Canada Museum, 2024 / Rai stones, Wikipedia</div>
-          <span class="entry-tag">물리적 존재 ≠ 가치</span>
-          <span class="entry-tag">공동체 합의 = 화폐</span>
-          <span class="entry-tag">비트코인과 동일한 원리</span>
-        </div>
-      </div>
+      <div class="anomalies">
 
-      <div class="entry">
-        <div class="entry-num">[A-002]</div>
-        <div>
-          <div class="entry-title">Salt &amp; Salary</div>
-          <div class="entry-body">
-            영어 'salary'의 어원: 라틴어 salarium(소금 돈) ← sal(소금). 로마 병사들은 급료 외에 소금 구매 수당(salarium argentum)을 별도로 지급받았다.<br><br>
-            소금이 화폐가 된 이유: 방부제로서 식품 저장에 필수. 희소하고, 운반 가능하고, 분할 가능하고, 표준화 가능. 고대 아프리카에서는 소금 덩어리를 직접 화폐로 사용.<br><br>
-            핵심 인사이트: <strong>가장 생존에 필수적인 것이 돈이 된다.</strong> 그것이 조개든, 금속이든, 소금이든.
+        <details class="anomaly-card" data-ref="015,016">
+          <summary class="anomaly-summary">
+            <span class="anomaly-num">[A-001]</span>
+            <span class="anomaly-title">Yap Island Rai Stones</span>
+            <span class="anomaly-meta">3.6m · 4,000kg · 미크로네시아</span>
+            <span class="anomaly-toggle">+</span>
+          </summary>
+          <div class="anomaly-body">
+            <p>미크로네시아 야프 섬의 석회석 원판 화폐. 최대 직경 <strong>3.6m, 무게 4,000kg</strong>. 팔라우에서 채석해 카누로 운반 — 최대 2주 소요. 크기가 클수록 가치가 높다.</p>
+            <p>가장 놀라운 점: <strong>돌은 움직이지 않는다</strong>. 소유권만 구두로 이전된다. 마을 전체가 누가 어떤 돌을 소유하는지 알고 있다 — 거래 후에도 돌은 그 자리에 있다.</p>
+            <p>더 놀라운 사례: 운반 도중 폭풍에 돌이 바다에 가라앉았다. 섬 사람들은 그 돌을 <em>여전히 유효한</em> 화폐로 인정했다. 아무도 본 적 없는 바다 밑 돌이 오늘날도 누군가의 재산이다.</p>
+            <div class="anomaly-tags">
+              <span>물리적 존재 ≠ 가치</span>
+              <span>공동체 합의 = 화폐</span>
+              <span>비트코인과 동일 구조</span>
+            </div>
+            <span class="anomaly-source">출처: Bank of Canada Museum 2024 / Rai stones — Wikipedia</span>
           </div>
-          <div class="entry-meta">어원: 라틴어 salarium / 역사: 에티오피아, 티베트에서 소금 화폐 사용 확인</div>
-          <span class="entry-tag">필수재 = 화폐 후보</span>
-          <span class="entry-tag">희소성이 가치를 만든다</span>
-        </div>
-      </div>
+        </details>
 
-      <div class="entry">
-        <div class="entry-num">[A-003]</div>
-        <div>
-          <div class="entry-title">Prison Cigarette Economy</div>
-          <div class="entry-body">
-            교도소 내 비공식 화폐의 자생적 출현. 교도소에 현금 반입이 금지된 환경에서 담배가 대체 화폐로 기능했다. 미국 교도소 내 금연 조치(2003년~) 이후 <strong>고등어 통조림(mackerel)</strong>이 담배를 대체:<br><br>
-            — 가격 표준화: 캔 1개 ≈ $1<br>
+        <details class="anomaly-card" data-ref="001">
+          <summary class="anomaly-summary">
+            <span class="anomaly-num">[A-002]</span>
+            <span class="anomaly-title">Salt &amp; Salary</span>
+            <span class="anomaly-meta">salarium · 어원으로 남은 화폐</span>
+            <span class="anomaly-toggle">+</span>
+          </summary>
+          <div class="anomaly-body">
+            <p>영어 <em>salary</em>의 어원: 라틴어 <strong>salarium</strong>(소금 돈) ← <em>sal</em>(소금). 로마 병사들은 급료 외에 소금 구매 수당(<em>salarium argentum</em>)을 별도로 지급받았다.</p>
+            <p>소금이 화폐가 된 이유 — 방부제로서 식품 저장에 필수. 희소하고, 운반 가능하고, 분할 가능하고, 표준화 가능. 고대 아프리카·에티오피아·티베트에서는 소금 덩어리 자체가 화폐로 유통.</p>
+            <p>핵심 인사이트: <strong>가장 생존에 필수적인 것이 돈이 된다.</strong> 그것이 조개든, 금속이든, 소금이든.</p>
+            <div class="anomaly-tags">
+              <span>필수재 = 화폐 후보</span>
+              <span>희소성 = 가치</span>
+            </div>
+            <span class="anomaly-source">어원: 라틴어 salarium / 역사: 에티오피아·티베트의 소금 화폐 기록</span>
+          </div>
+        </details>
+
+        <details class="anomaly-card" data-ref="018">
+          <summary class="anomaly-summary">
+            <span class="anomaly-num">[A-003]</span>
+            <span class="anomaly-title">Prison Mackerel Economy</span>
+            <span class="anomaly-meta">고등어 통조림 ≈ $1 · 미국 교도소</span>
+            <span class="anomaly-toggle">+</span>
+          </summary>
+          <div class="anomaly-body">
+            <p>교도소 내 비공식 화폐의 자생적 출현. 현금 반입이 금지된 환경에서 담배가 처음 대체 화폐 역할을 했다. 미국 교도소 내 <strong>금연 조치(2003)</strong> 이후, <strong>고등어 통조림(mackerel)</strong>이 담배를 대체했다.</p>
+            <p>왜 고등어 캔이 화폐가 됐는가:</p>
+            <p>— 가격 표준화: 캔 1개 ≈ $1<br>
             — 긴 유통기한 → 저장 가능<br>
             — 높은 단백질 함량 → 실용적 수요<br>
-            — 쉽게 분할·계수 가능<br><br>
-            제2차 세계대전 직후 독일·프랑스·벨기에에서도 담배가 화폐로 기능. 2022년 러시아 점령 헤르손에서도 동일 현상.
+            — 쉽게 분할·계수 가능</p>
+            <p>제2차 세계대전 직후 독일·프랑스·벨기에에서도 담배가 화폐로 기능. 2022년 러시아 점령 헤르손에서도 동일 현상이 관찰됐다 — <em>화폐는 어떤 사회에서도 자생한다</em>.</p>
+            <div class="anomaly-tags">
+              <span>화폐는 자생한다</span>
+              <span>희소성 + 표준화 + 수요</span>
+            </div>
+            <span class="anomaly-source">출처: Commodity money — Wikipedia / 교도소 경제 연구 리뷰</span>
           </div>
-          <div class="entry-meta">출처: Commodity money — Wikipedia / Prison economy studies</div>
-          <span class="entry-tag">어떤 사회에도 화폐는 자생한다</span>
-          <span class="entry-tag">희소성 + 표준화 + 수요 = 화폐</span>
-        </div>
-      </div>
+        </details>
 
-      <div class="entry">
-        <div class="entry-num">[A-004]</div>
-        <div>
-          <div class="entry-title">Wampum — Colonial America</div>
-          <div class="entry-body">
-            원주민 조개구슬 완품(Wampum). 원래는 의식용, 조약 기록용, 선물 교환용 — 화폐가 아니었다. 17세기 초 유럽 정착민들이 현금 부족 문제를 해결하기 위해 화폐로 채택.<br><br>
-            비극: 18세기 중반 기계로 완품을 대량 생산하기 시작 → 공급 폭증 → 인플레이션 → 화폐 기능 상실.<br><br>
-            <strong>희소성이 없어지면 화폐는 죽는다.</strong> 이것이 비트코인 설계자가 공급 상한을 2,100만 BTC로 고정한 이유다.
+        <details class="anomaly-card" data-ref="017">
+          <summary class="anomaly-summary">
+            <span class="anomaly-num">[A-004]</span>
+            <span class="anomaly-title">Wampum — Colonial America</span>
+            <span class="anomaly-meta">의식용 → 화폐 → 대량생산 → 붕괴</span>
+            <span class="anomaly-toggle">+</span>
+          </summary>
+          <div class="anomaly-body">
+            <p>원주민 조개구슬 <strong>완품(Wampum)</strong>. 원래는 의식용·조약 기록용·선물 교환용 — <em>화폐가 아니었다</em>. 17세기 초 유럽 정착민들이 현금 부족을 해소하기 위해 화폐로 채택했다.</p>
+            <p>비극의 시작: 18세기 중반 <strong>기계로 완품을 대량 생산</strong>하기 시작 → 공급 폭증 → 인플레이션 → 화폐 기능 상실.</p>
+            <p><strong>희소성이 없어지면 화폐는 죽는다.</strong> 이것이 비트코인 설계자가 공급 상한을 <em>2,100만 BTC</em>로 고정한 이유다 — 21세기 화폐 설계는 17세기 식민지의 실패를 학습한 결과.</p>
+            <div class="anomaly-tags">
+              <span>희소성 = 화폐의 생명</span>
+              <span>대량생산 = 화폐 사망</span>
+            </div>
+            <span class="anomaly-source">출처: Wampum — Britannica / EH.net 경제사 아카이브</span>
           </div>
-          <div class="entry-meta">출처: Wampum — Britannica / EH.net</div>
-          <span class="entry-tag">희소성 = 화폐의 생명</span>
-          <span class="entry-tag">대량생산 = 화폐 붕괴</span>
-        </div>
-      </div>
+        </details>
 
-      <div class="entry">
-        <div class="entry-num">[A-005]</div>
-        <div>
-          <div class="entry-title">Lost Bitcoin — The Digital Rai Stone</div>
-          <div class="entry-body">
-            추정 400만 BTC(전체 공급량의 약 19%)가 개인 키 분실·사망·하드드라이브 손상 등으로 영구 접근 불가 상태. 이 비트코인들은 블록체인에 존재하지만, 아무도 쓸 수 없다.<br><br>
-            야프 섬의 바다 밑 돌과 동일한 구조: <strong>있지만 없는 것.</strong> 소유는 기록에 있지만 실제로는 사라졌다. 차이는 야프의 돌은 공동체가 계속 인정하지만, 잃어버린 비트코인은 아무도 접근할 수 없다는 것.
+        <details class="anomaly-card" data-ref="020,025">
+          <summary class="anomaly-summary">
+            <span class="anomaly-num">[A-005]</span>
+            <span class="anomaly-title">Lost Bitcoin — Digital Rai Stone</span>
+            <span class="anomaly-meta">≈ 400만 BTC · 19% · 영구 접근 불가</span>
+            <span class="anomaly-toggle">+</span>
+          </summary>
+          <div class="anomaly-body">
+            <p>추정 <strong>400만 BTC</strong>(전체 공급량의 약 <strong>19%</strong>)가 개인 키 분실·사망·하드드라이브 손상 등으로 영구 접근 불가 상태. 이 비트코인들은 블록체인에 <em>존재하지만 아무도 쓸 수 없다</em>.</p>
+            <p>야프 섬의 바다 밑 돌과 동일한 구조: <strong>있지만 없는 것.</strong> 소유는 기록에 있지만 실제로는 사라졌다.</p>
+            <p>유일한 차이: 야프의 돌은 공동체가 계속 인정하지만, 잃어버린 비트코인은 <em>아무도 접근할 수 없다</em>. 합의는 살아있고 실체는 죽었다.</p>
+            <div class="anomaly-tags">
+              <span>디지털 소멸 = 물리적 소멸</span>
+              <span>키 없는 BTC = 가라앉은 돌</span>
+            </div>
+            <span class="anomaly-source">추정치: Chainalysis 2020 / Coin Metrics On-chain Analytics</span>
           </div>
-          <div class="entry-meta">추정치: Chainalysis, 2020 / Coin Metrics</div>
-          <span class="entry-tag">디지털 소멸 = 물리적 소멸</span>
-          <span class="entry-tag">키 없는 비트코인 = 가라앉은 돌</span>
-        </div>
+        </details>
+
       </div>
     </section>
 
@@ -2006,30 +2404,30 @@
         <div class="section-rule"></div>
       </div>
 
-      <div class="ref-item"><span class="ref-n">001</span><span class="ref-body">History of money — <a href="https://en.wikipedia.org/wiki/History_of_money" target="_blank">Wikipedia</a></span></div>
-      <div class="ref-item"><span class="ref-n">002</span><span class="ref-body">Shell money — <a href="https://en.wikipedia.org/wiki/Shell_money" target="_blank">Wikipedia</a></span></div>
-      <div class="ref-item"><span class="ref-n">003</span><span class="ref-body">Cowrie Shells and Trade Power — <a href="https://nmaahc.si.edu/cowrie-shells-and-trade-power" target="_blank">NMAAHC, Smithsonian</a></span></div>
-      <div class="ref-item"><span class="ref-n">004</span><span class="ref-body">The Importance of the Lydian Stater — <a href="https://www.worldhistory.org/article/797/the-importance-of-the-lydian-stater-as-the-worlds/" target="_blank">World History Encyclopedia</a></span></div>
-      <div class="ref-item"><span class="ref-n">005</span><span class="ref-body">Nixon and the End of the Bretton Woods System — <a href="https://history.state.gov/milestones/1969-1976/nixon-shock" target="_blank">U.S. Department of State / Office of the Historian</a></span></div>
-      <div class="ref-item"><span class="ref-n">006</span><span class="ref-body">Nixon shock — <a href="https://en.wikipedia.org/wiki/Nixon_shock" target="_blank">Wikipedia</a></span></div>
-      <div class="ref-item"><span class="ref-n">007</span><span class="ref-body">How the 'Nixon Shock' Remade the World Economy — <a href="https://insights.som.yale.edu/insights/how-the-nixon-shock-remade-the-world-economy" target="_blank">Yale School of Management</a></span></div>
+      <div class="ref-item"><span class="ref-n">001</span><span class="ref-body">History of money — <a href="https://en.wikipedia.org/wiki/History_of_money" target="_blank" rel="noopener">Wikipedia</a></span></div>
+      <div class="ref-item"><span class="ref-n">002</span><span class="ref-body">Shell money — <a href="https://en.wikipedia.org/wiki/Shell_money" target="_blank" rel="noopener">Wikipedia</a></span></div>
+      <div class="ref-item"><span class="ref-n">003</span><span class="ref-body">Cowrie Shells and Trade Power — <a href="https://nmaahc.si.edu/cowrie-shells-and-trade-power" target="_blank" rel="noopener">NMAAHC, Smithsonian</a></span></div>
+      <div class="ref-item"><span class="ref-n">004</span><span class="ref-body">The Importance of the Lydian Stater — <a href="https://www.worldhistory.org/article/797/the-importance-of-the-lydian-stater-as-the-worlds/" target="_blank" rel="noopener">World History Encyclopedia</a></span></div>
+      <div class="ref-item"><span class="ref-n">005</span><span class="ref-body">Nixon and the End of the Bretton Woods System — <a href="https://history.state.gov/milestones/1969-1976/nixon-shock" target="_blank" rel="noopener">U.S. Department of State / Office of the Historian</a></span></div>
+      <div class="ref-item"><span class="ref-n">006</span><span class="ref-body">Nixon shock — <a href="https://en.wikipedia.org/wiki/Nixon_shock" target="_blank" rel="noopener">Wikipedia</a></span></div>
+      <div class="ref-item"><span class="ref-n">007</span><span class="ref-body">How the 'Nixon Shock' Remade the World Economy — <a href="https://insights.som.yale.edu/insights/how-the-nixon-shock-remade-the-world-economy" target="_blank" rel="noopener">Yale School of Management</a></span></div>
       <div class="ref-item"><span class="ref-n">008</span><span class="ref-body">The Philosophy of Money — Georg Simmel / Routledge Classics, 1900 (translated 1978)</span></div>
       <div class="ref-item"><span class="ref-n">009</span><span class="ref-body">Sapiens: A Brief History of Humankind — Yuval Noah Harari / Harper, 2011</span></div>
-      <div class="ref-item"><span class="ref-n">010</span><span class="ref-body">Study on the Payment Attitudes of Consumers in the Euro Area (SPACE) 2024 — <a href="https://www.ecb.europa.eu/stats/ecb_surveys/space/html/ecb.space2024~19d46f0f17.en.html" target="_blank">European Central Bank</a></span></div>
-      <div class="ref-item"><span class="ref-n">011</span><span class="ref-body">Privacy implications of CBDCs — <a href="https://www.tandfonline.com/doi/full/10.1080/07366981.2024.2376794" target="_blank">Taylor & Francis, 2024</a></span></div>
-      <div class="ref-item"><span class="ref-n">012</span><span class="ref-body">Spendception: Psychological Impact of Digital Payments — <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC11939284/" target="_blank">PMC / MDPI Behavioral Sciences, 2025</a></span></div>
-      <div class="ref-item"><span class="ref-n">013</span><span class="ref-body">Pain of Paying — <a href="https://thedecisionlab.com/reference-guide/psychology/pain-of-paying" target="_blank">The Decision Lab</a></span></div>
-      <div class="ref-item"><span class="ref-n">014</span><span class="ref-body">Cash, Card or Smartphone: Neural Correlates of Payment Methods — <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC6856651/" target="_blank">Frontiers in Neuroscience / PMC, 2019</a></span></div>
-      <div class="ref-item"><span class="ref-n">015</span><span class="ref-body">Rai stones — <a href="https://en.wikipedia.org/wiki/Rai_stones" target="_blank">Wikipedia</a></span></div>
-      <div class="ref-item"><span class="ref-n">016</span><span class="ref-body">Rai: big money — <a href="https://www.bankofcanadamuseum.ca/2024/07/rai-big-money/" target="_blank">Bank of Canada Museum, 2024</a></span></div>
-      <div class="ref-item"><span class="ref-n">017</span><span class="ref-body">Wampum — <a href="https://www.britannica.com/money/wampum" target="_blank">Britannica Money</a></span></div>
-      <div class="ref-item"><span class="ref-n">018</span><span class="ref-body">Commodity money — <a href="https://en.wikipedia.org/wiki/Commodity_money" target="_blank">Wikipedia</a> (prison fish currency)</span></div>
-      <div class="ref-item"><span class="ref-n">019</span><span class="ref-body">Hyperinflation in the Weimar Republic — <a href="https://en.wikipedia.org/wiki/Hyperinflation_in_the_Weimar_Republic" target="_blank">Wikipedia</a></span></div>
-      <div class="ref-item"><span class="ref-n">020</span><span class="ref-body">Proof of work — <a href="https://en.wikipedia.org/wiki/Proof_of_work" target="_blank">Wikipedia</a></span></div>
-      <div class="ref-item"><span class="ref-n">021</span><span class="ref-body">Cashless Economy Statistics — <a href="https://coinlaw.io/cashless-economy-statistics/" target="_blank">CoinLaw, 2026</a></span></div>
-      <div class="ref-item"><span class="ref-n">022</span><span class="ref-body">Attention Economy — <a href="https://labs.sogeti.com/the-attention-economy-a-new-currency-for-our-modern-age/" target="_blank">Sogeti Labs</a></span></div>
-      <div class="ref-item"><span class="ref-n">023</span><span class="ref-body">From Barter to Bitcoin — <a href="https://www.itrustcapital.com/learn/from-barter-to-bitcoin-the-evolution-of-money-throughout-history" target="_blank">iTrustCapital</a></span></div>
-      <div class="ref-item"><span class="ref-n">024</span><span class="ref-body">Federal Reserve Balance Sheet / QE History — <a href="https://americandeposits.com/insights/history-quantitative-easing-united-states/" target="_blank">American Deposits Management</a></span></div>
+      <div class="ref-item"><span class="ref-n">010</span><span class="ref-body">Study on the Payment Attitudes of Consumers in the Euro Area (SPACE) 2024 — <a href="https://www.ecb.europa.eu/stats/ecb_surveys/space/html/ecb.space2024~19d46f0f17.en.html" target="_blank" rel="noopener">European Central Bank</a></span></div>
+      <div class="ref-item"><span class="ref-n">011</span><span class="ref-body">Privacy implications of CBDCs — <a href="https://www.tandfonline.com/doi/full/10.1080/07366981.2024.2376794" target="_blank" rel="noopener">Taylor & Francis, 2024</a></span></div>
+      <div class="ref-item"><span class="ref-n">012</span><span class="ref-body">Spendception: Psychological Impact of Digital Payments — <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC11939284/" target="_blank" rel="noopener">PMC / MDPI Behavioral Sciences, 2025</a></span></div>
+      <div class="ref-item"><span class="ref-n">013</span><span class="ref-body">Pain of Paying — <a href="https://thedecisionlab.com/reference-guide/psychology/pain-of-paying" target="_blank" rel="noopener">The Decision Lab</a></span></div>
+      <div class="ref-item"><span class="ref-n">014</span><span class="ref-body">Cash, Card or Smartphone: Neural Correlates of Payment Methods — <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC6856651/" target="_blank" rel="noopener">Frontiers in Neuroscience / PMC, 2019</a></span></div>
+      <div class="ref-item"><span class="ref-n">015</span><span class="ref-body">Rai stones — <a href="https://en.wikipedia.org/wiki/Rai_stones" target="_blank" rel="noopener">Wikipedia</a></span></div>
+      <div class="ref-item"><span class="ref-n">016</span><span class="ref-body">Rai: big money — <a href="https://www.bankofcanadamuseum.ca/2024/07/rai-big-money/" target="_blank" rel="noopener">Bank of Canada Museum, 2024</a></span></div>
+      <div class="ref-item"><span class="ref-n">017</span><span class="ref-body">Wampum — <a href="https://www.britannica.com/money/wampum" target="_blank" rel="noopener">Britannica Money</a></span></div>
+      <div class="ref-item"><span class="ref-n">018</span><span class="ref-body">Commodity money — <a href="https://en.wikipedia.org/wiki/Commodity_money" target="_blank" rel="noopener">Wikipedia</a> (prison fish currency)</span></div>
+      <div class="ref-item"><span class="ref-n">019</span><span class="ref-body">Hyperinflation in the Weimar Republic — <a href="https://en.wikipedia.org/wiki/Hyperinflation_in_the_Weimar_Republic" target="_blank" rel="noopener">Wikipedia</a></span></div>
+      <div class="ref-item"><span class="ref-n">020</span><span class="ref-body">Proof of work — <a href="https://en.wikipedia.org/wiki/Proof_of_work" target="_blank" rel="noopener">Wikipedia</a></span></div>
+      <div class="ref-item"><span class="ref-n">021</span><span class="ref-body">Cashless Economy Statistics — <a href="https://coinlaw.io/cashless-economy-statistics/" target="_blank" rel="noopener">CoinLaw, 2026</a></span></div>
+      <div class="ref-item"><span class="ref-n">022</span><span class="ref-body">Attention Economy — <a href="https://labs.sogeti.com/the-attention-economy-a-new-currency-for-our-modern-age/" target="_blank" rel="noopener">Sogeti Labs</a></span></div>
+      <div class="ref-item"><span class="ref-n">023</span><span class="ref-body">From Barter to Bitcoin — <a href="https://www.itrustcapital.com/learn/from-barter-to-bitcoin-the-evolution-of-money-throughout-history" target="_blank" rel="noopener">iTrustCapital</a></span></div>
+      <div class="ref-item"><span class="ref-n">024</span><span class="ref-body">Federal Reserve Balance Sheet / QE History — <a href="https://americandeposits.com/insights/history-quantitative-easing-united-states/" target="_blank" rel="noopener">American Deposits Management</a></span></div>
       <div class="ref-item"><span class="ref-n">025</span><span class="ref-body">Bitcoin: A Peer-to-Peer Electronic Cash System — Satoshi Nakamoto / 2008</span></div>
     </section>
 
@@ -2189,9 +2587,15 @@
     requestAnimationFrame(frame);
   })();
 
-  // ── Apply stat-bar-fill widths from data-w (avoids inline styles in HTML) ──
+  // ── Apply data-driven widths/percentages from attributes (no inline HTML styles) ──
   document.querySelectorAll('.stat-bar-fill[data-w]').forEach((el) => {
     el.style.width = el.dataset.w + '%';
+  });
+  document.querySelectorAll('.cb-fill[data-w], .reason-fill[data-w]').forEach((el) => {
+    el.style.setProperty('--w', el.dataset.w + '%');
+  });
+  document.querySelectorAll('.donut-seg[data-p]').forEach((el) => {
+    el.style.setProperty('--p', el.dataset.p);
   });
 
   // ── Body reveal: bidirectional scramble + rise on scroll ──────
@@ -2237,7 +2641,10 @@
       { sel: '.collapse-event', childSel: '.collapse-row',       stagger: 50 },
       { sel: '.scenario',       childSel: '.scenario-row',       stagger: 60 },
       { sel: '.timeline',       childSel: '.tl-item',            stagger: 40 },
-      { sel: '.index-map',      childSel: '.i-row',              stagger: 35 }
+      { sel: '.index-map',      childSel: '.i-row',              stagger: 35 },
+      { sel: '.findings',       childSel: '.finding-card',       stagger: 90 },
+      { sel: '.anomalies',      childSel: '.anomaly-card',       stagger: 70 },
+      { sel: '.trust-break',    childSel: '.tb-row',             stagger: 90 }
     ];
 
     function scramble(el) {
@@ -2377,14 +2784,14 @@
       });
     });
 
-    // ── Stat bar fills: scaleX 0 → 1 on entry ────────────────────
+    // ── Bars / donuts / reason-fills: animate in on entry ────────
     const barIO = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) entry.target.classList.add('in');
         else entry.target.classList.remove('in');
       });
     }, { threshold: 0.4, rootMargin: '0px 0px -6% 0px' });
-    document.querySelectorAll('.stat-bar-fill').forEach((el) => pending.push([barIO, el]));
+    document.querySelectorAll('.stat-bar-fill, .cb-fill, .reason-fill, .donut').forEach((el) => pending.push([barIO, el]));
 
     // ── Dots ratings: pop in box-by-box (띵띵띵) ──────────────────
     const dotTimers = new WeakMap();
