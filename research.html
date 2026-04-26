@@ -101,10 +101,11 @@
       padding: 6px 12px;
       background: transparent;
       color: rgba(242, 242, 242, 0.94);
-      font-family: "Courier New", Courier, monospace;
-      font-size: 13px;
+      font-family: var(--mono);
+      font-size: 11px;
       font-weight: 400;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
       line-height: 1;
       text-decoration: none;
       transition: background 180ms ease, color 180ms ease;
@@ -306,7 +307,11 @@
       width: 7px; height: 7px;
       border-radius: 0;
       display: block;
+      opacity: 0;
+      transform: scale(0.35);
+      transition: opacity 220ms ease, transform 240ms cubic-bezier(.4,1.7,.6,1);
     }
+    .dots span.in { opacity: 1; transform: scale(1); }
     .dots span.on  { background: rgba(220,220,220,0.85); }
     .dots span.off { background: rgba(120,120,120,0.28); }
 
@@ -377,7 +382,14 @@
     .stat-bar-fill {
       position: absolute;
       left: 0; top: 0; bottom: 0;
-      background: rgba(200,200,200,0.7);
+      background: rgba(220,220,220,0.78);
+      transform: scaleX(0);
+      transform-origin: left center;
+      transition: transform 1100ms cubic-bezier(.6,.05,.3,1);
+    }
+    .stat-bar-fill.in {
+      transform: scaleX(1);
+      transition-delay: 220ms;
     }
     .stat-val {
       font-size: 11px;
@@ -639,18 +651,185 @@
     /* ── SCROLLBAR ── */
     #main { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent; }
 
-    /* ── BODY REVEAL: rise + scramble on scroll ── */
+    /* ── BODY REVEAL: rise + scramble on scroll, both directions ── */
     .reveal {
       opacity: 0;
       transform: translateY(14px);
-      transition: opacity 520ms ease, transform 520ms ease;
+      transition: opacity 380ms ease, transform 380ms ease;
       will-change: opacity, transform;
     }
     .reveal.in {
       opacity: 1;
       transform: translateY(0);
     }
+    .reveal.up {
+      opacity: 0;
+      transform: translateY(-14px);
+    }
+
+    /* ── CUSTOM CURSOR (research): SVG data URIs replace native cursor ── */
+    @media (hover: hover) and (pointer: fine) {
+      body {
+        cursor: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cline x1='12' y1='3' x2='12' y2='21' stroke='white' stroke-width='1.4'/%3E%3Cline x1='3' y1='12' x2='21' y2='12' stroke='white' stroke-width='1.4'/%3E%3C/svg%3E") 12 12, crosshair;
+      }
+      a, button, .sidebar-cta, .nav-item, [role="button"] {
+        cursor: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpolyline points='8,4 16,12 8,20' stroke='white' stroke-width='1.6' fill='none' stroke-linecap='square' stroke-linejoin='miter'/%3E%3C/svg%3E") 12 12, pointer;
+      }
+      [data-ref] {
+        cursor: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Ccircle cx='14' cy='14' r='10' stroke='white' stroke-width='1.3' fill='none'/%3E%3Cpath d='M11 11 Q11 8 14 8 Q17 8 17 11 Q17 13 14 14 L14 16' stroke='white' stroke-width='1.3' fill='none'/%3E%3Ccircle cx='14' cy='19.5' r='0.9' fill='white'/%3E%3C/svg%3E") 14 14, help;
+      }
+      .section-title, .section-num, .tl-name, .tl-year, .i-name, .i-num,
+      .label, .ascii-box-label, .q-id, .q-source, .entry-num, .entry-title,
+      .collapse-year, .collapse-title, .scenario-title, .stat-label, .stat-value,
+      .s-id, .s-key, .c-key, h2, h3, h4, th {
+        cursor: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='24' viewBox='0 0 10 24'%3E%3Crect x='2' y='4' width='6' height='2' fill='white'/%3E%3Crect x='4' y='4' width='2' height='16' fill='white'/%3E%3Crect x='2' y='18' width='6' height='2' fill='white'/%3E%3C/svg%3E") 5 12, text;
+      }
+    }
+
+    /* ── CASCADING CHILD ANIMATION (rows/cells/dots) ── */
+    .cascade-child {
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 280ms ease, transform 280ms ease;
+    }
+    .cascade-child.in {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .cascade-child.up {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
     .dud { color: rgba(165, 165, 165, 0.52); }
+
+    /* ── UTILITY CLASSES (replace inline styles) ── */
+    .mb-6  { margin-bottom: 6px; }
+    .mb-8  { margin-bottom: 8px; }
+    .mb-10 { margin-bottom: 10px; }
+    .mb-12 { margin-bottom: 12px; }
+    .mb-14 { margin-bottom: 14px; }
+    .mb-16 { margin-bottom: 16px; }
+    .mb-18 { margin-bottom: 18px; }
+    .mb-20 { margin-bottom: 20px; }
+    .mb-24 { margin-bottom: 24px; }
+    .mb-28 { margin-bottom: 28px; }
+    .mb-36 { margin-bottom: 36px; }
+    .mt-0  { margin-top: 0; }
+    .mt-6  { margin-top: 6px; }
+    .mt-8  { margin-top: 8px; }
+    .mt-10 { margin-top: 10px; }
+    .mt-24 { margin-top: 24px; }
+    .m-0   { margin: 0; }
+    .c-dim   { color: var(--dim); }
+    .c-muted { color: var(--muted); }
+    .c-text  { color: var(--text); }
+    .min-w-130 { min-width: 130px; }
+    /* stat-bar-fill: width is set from data-w via JS to avoid inline styles */
+
+    /* ── COVER: ARCHIVE splash ── matches stage-0 intro question style ── */
+    #cover {
+      position: fixed;
+      inset: 0;
+      z-index: 9998;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 700ms ease;
+    }
+    #cover.fade-out { opacity: 0; pointer-events: none; }
+    #cover-text {
+      font-family: var(--mono);
+      font-size: 24px;
+      font-weight: 400;
+      letter-spacing: 0.04em;
+      color: #ffffff;
+      white-space: nowrap;
+    }
+    body.cover-active { overflow: hidden; }
+
+    /* Sidebar starts hidden — cover IIFE reveals it after the splash. */
+    #sidebar-sub, .nav-item, .sidebar-cta {
+      opacity: 0;
+      transition: opacity 320ms ease;
+    }
+    #sidebar-sub.sb-in, .nav-item.sb-in, .sidebar-cta.sb-in { opacity: 1; }
+
+    /* ── REF HOVER TOOLTIP ── */
+    [data-ref] {
+      cursor: help;
+      transition: background 160ms ease, border-left-color 200ms ease, padding-left 200ms ease;
+    }
+    [data-ref]:hover {
+      background: rgba(255, 255, 255, 0.025);
+    }
+    .body-text[data-ref] {
+      border-left: 2px solid transparent;
+      padding-left: 0;
+    }
+    .body-text[data-ref]:hover {
+      background: transparent;
+      border-left-color: rgba(255, 255, 255, 0.28);
+      padding-left: 12px;
+    }
+    .ref-tooltip {
+      position: fixed;
+      z-index: 10000;
+      max-width: 360px;
+      padding: 10px 12px;
+      background: rgba(15, 15, 15, 0.97);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      font-family: var(--mono);
+      font-size: 11px;
+      line-height: 1.55;
+      color: var(--muted);
+      opacity: 0;
+      transform: translateY(4px);
+      transition: opacity 160ms ease, transform 160ms ease;
+      pointer-events: none;
+      -webkit-backdrop-filter: blur(2px);
+      backdrop-filter: blur(2px);
+    }
+    .ref-tooltip.visible {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+    .ref-tooltip .ref-row { display: block; }
+    .ref-tooltip .ref-row + .ref-row { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line2); }
+    .ref-tooltip .ref-n {
+      display: inline-block;
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      color: var(--dim);
+      margin-right: 8px;
+    }
+    .ref-tooltip a {
+      color: var(--text);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      text-decoration-color: rgba(255, 255, 255, 0.3);
+    }
+    .ref-tooltip a:hover { text-decoration-color: var(--text); }
+    .ref-tooltip .ref-portrait {
+      display: block;
+      width: 96px;
+      height: 96px;
+      margin-bottom: 10px;
+      background: var(--bg2);
+      border: 1px solid var(--line);
+      filter: grayscale(1) contrast(1.05) brightness(0.94);
+      object-fit: cover;
+    }
+    .ref-tooltip .ref-portrait-label {
+      display: block;
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--dim);
+      margin-bottom: 8px;
+    }
+    .ref-tooltip .ref-portrait-wrap + .ref-row { margin-top: 0; }
 
     /* ── MOBILE ── */
     @media (max-width: 760px) {
@@ -663,7 +842,11 @@
     }
   </style>
 </head>
-<body>
+<body class="cover-active">
+
+<div id="cover">
+  <div id="cover-text"></div>
+</div>
 
 <div id="topbar"><div id="topbar-progress"></div></div>
 
@@ -704,13 +887,13 @@
         <div class="section-rule"></div>
       </div>
 
-      <p class="body-text" style="margin-bottom:20px;">
+      <p class="body-text mb-20">
         돈은 역사 속에서 <strong>물질에서 시스템으로</strong> 진화해왔다. 조개·금속·종이·데이터로 이어지는 이 계보는 단순한 기술사가 아니라, 인간이 <strong>"무엇을 믿기로 했는가"</strong>에 대한 기록이다. 초기 화폐는 손에 쥘 수 있는 자연물이었고, 그 자체의 희소성·내구성·휴대성이 곧 가치였다. 그러나 거래 규모가 커지고 국가가 등장하면서, 가치는 물질 자체가 아니라 <strong>물질 뒤의 보증</strong>에서 오기 시작했다. 리디아의 왕이 찍은 인장, 송나라의 붉은 도장, 영란은행의 서명, 닉슨의 TV 연설, 사토시 나카모토의 해시 함수 — 이 모든 것은 같은 질문에 대한 다른 답이다: <em>무엇이 이것을 가치 있게 만드는가?</em>
       </p>
-      <p class="body-text" style="margin-bottom:20px;">
+      <p class="body-text mb-20">
         이 아카이브는 그 질문의 답이 바뀌어온 궤적을 기록한다. 섹션 01은 BCE 9000년 물물교환부터 2024년 CBDC까지의 연표이며, 섹션 02는 각 시대 화폐의 물리적 속성을 수치로 비교한다. 섹션 03은 Simmel·Harari·영란은행의 정의를 빌려 <strong>돈의 본질이 신뢰임</strong>을 증명하고, 섹션 04는 그 신뢰 구조가 가장 극적으로 재편된 1971년 8월 15일 닉슨 쇼크를 분 단위로 재구성한다. 섹션 05~07은 인간이 돈을 대하는 방식의 비합리성과 붕괴 사례를, 08~09는 탈물질화의 데이터와 다음 세기의 시나리오를 다룬다.
       </p>
-      <p class="body-text" style="margin-bottom:28px;">
+      <p class="body-text mb-28">
         각 섹션은 독립적으로 읽을 수 있으며, 동시에 하나의 논제를 향한다:<br>
         <strong>"가치가 클수록 물성은 약해진다."</strong> — 가장 비싼 거래는 이제 어떤 물질도 거치지 않는다.
       </p>
@@ -785,7 +968,7 @@
       </div>
 
       <div class="timeline">
-        <div class="tl-item">
+        <div class="tl-item" data-ref="023">
           <div class="tl-year">BCE 9000</div>
           <div class="tl-dot"><span></span></div>
           <div class="tl-content">
@@ -794,7 +977,7 @@
             <div class="tl-meta">가치의 저장 불가 / 상한 것은 돈이 될 수 없다</div>
           </div>
         </div>
-        <div class="tl-item">
+        <div class="tl-item" data-ref="002,003">
           <div class="tl-year">BCE 3000</div>
           <div class="tl-dot"><span></span></div>
           <div class="tl-content">
@@ -803,7 +986,7 @@
             <div class="tl-meta">3,000년 이상 / 1500~1875년 서아프리카에만 300억 개 유통</div>
           </div>
         </div>
-        <div class="tl-item">
+        <div class="tl-item" data-ref="001">
           <div class="tl-year">BCE 1000</div>
           <div class="tl-dot"><span></span></div>
           <div class="tl-content">
@@ -812,7 +995,7 @@
             <div class="tl-meta">무게 = 가치, 가치를 확인하는 데 도구가 필요했다</div>
           </div>
         </div>
-        <div class="tl-item">
+        <div class="tl-item" data-ref="004">
           <div class="tl-year">BCE 700</div>
           <div class="tl-dot"><span></span></div>
           <div class="tl-content">
@@ -821,7 +1004,7 @@
             <div class="tl-meta">표준화 = 신뢰의 물질화 / 국가가 가치를 보증하기 시작</div>
           </div>
         </div>
-        <div class="tl-item">
+        <div class="tl-item" data-ref="001">
           <div class="tl-year">BCE 500</div>
           <div class="tl-dot"><span></span></div>
           <div class="tl-content">
@@ -830,7 +1013,7 @@
             <div class="tl-meta">수천 년간 지속 / 구멍 = 운반을 위한 디자인</div>
           </div>
         </div>
-        <div class="tl-item">
+        <div class="tl-item" data-ref="001">
           <div class="tl-year">CE 800</div>
           <div class="tl-dot"><span></span></div>
           <div class="tl-content">
@@ -839,7 +1022,7 @@
             <div class="tl-meta">종이는 금속 대신 "약속"을 운반했다</div>
           </div>
         </div>
-        <div class="tl-item">
+        <div class="tl-item" data-ref="001">
           <div class="tl-year">CE 1290</div>
           <div class="tl-dot"><span></span></div>
           <div class="tl-content">
@@ -848,7 +1031,7 @@
             <div class="tl-meta">마르코 폴로, <em>동방견문록</em></div>
           </div>
         </div>
-        <div class="tl-item">
+        <div class="tl-item" data-ref="001">
           <div class="tl-year">CE 1694</div>
           <div class="tl-dot"><span></span></div>
           <div class="tl-content">
@@ -857,7 +1040,7 @@
             <div class="tl-meta">지폐 = 금 태환 약속어음 / 신뢰의 제도화</div>
           </div>
         </div>
-        <div class="tl-item">
+        <div class="tl-item" data-ref="001">
           <div class="tl-year">CE 1861</div>
           <div class="tl-dot"><span></span></div>
           <div class="tl-content">
@@ -866,7 +1049,7 @@
             <div class="tl-meta">최초의 법정 불태환 지폐(fiat currency) 실험</div>
           </div>
         </div>
-        <div class="tl-item">
+        <div class="tl-item" data-ref="005">
           <div class="tl-year">CE 1944</div>
           <div class="tl-dot"><span></span></div>
           <div class="tl-content">
@@ -875,7 +1058,7 @@
             <div class="tl-meta">27년 후 이 시스템은 일방적으로 해체된다</div>
           </div>
         </div>
-        <div class="tl-item">
+        <div class="tl-item" data-ref="001">
           <div class="tl-year">CE 1950</div>
           <div class="tl-dot"><span></span></div>
           <div class="tl-content">
@@ -884,16 +1067,16 @@
             <div class="tl-meta">현금 없이 "나중에 낼게요"가 처음 제도화됨</div>
           </div>
         </div>
-        <div class="tl-item">
+        <div class="tl-item" data-ref="005,006,007">
           <div class="tl-year">CE 1971</div>
           <div class="tl-dot"><span></span></div>
           <div class="tl-content">
             <div class="tl-name">Nixon Shock</div>
-            <div class="tl-desc">1971년 8월 15일. 리처드 닉슨 TV 생중계 연설로 달러의 금태환 일방 정지 선언. 브레턴우즈 체제 붕괴. 이후 모든 주요 통화가 변동환율제로 전환. → <a href="#s04" style="color:var(--muted);">섹션 04 상세 참조</a></div>
+            <div class="tl-desc">1971년 8월 15일. 리처드 닉슨 TV 생중계 연설로 달러의 금태환 일방 정지 선언. 브레턴우즈 체제 붕괴. 이후 모든 주요 통화가 변동환율제로 전환. → <a class="c-muted" href="#s04">섹션 04 상세 참조</a></div>
             <div class="tl-meta">이 날 이후 달러는 순수한 신뢰로만 작동한다</div>
           </div>
         </div>
-        <div class="tl-item">
+        <div class="tl-item" data-ref="024">
           <div class="tl-year">CE 2008</div>
           <div class="tl-dot"><span></span></div>
           <div class="tl-content">
@@ -902,7 +1085,7 @@
             <div class="tl-meta">돈이 인쇄되면 가치는 희석된다</div>
           </div>
         </div>
-        <div class="tl-item">
+        <div class="tl-item" data-ref="020,025">
           <div class="tl-year">CE 2009</div>
           <div class="tl-dot"><span></span></div>
           <div class="tl-content">
@@ -911,7 +1094,7 @@
             <div class="tl-meta">최대 공급 2,100만 BTC / 인플레이션 불가능</div>
           </div>
         </div>
-        <div class="tl-item">
+        <div class="tl-item" data-ref="024">
           <div class="tl-year">CE 2020</div>
           <div class="tl-dot"><span></span></div>
           <div class="tl-content">
@@ -920,7 +1103,7 @@
             <div class="tl-meta">2020년 미국 M2: 15.4T → 2021년: 21.2T (+38%)</div>
           </div>
         </div>
-        <div class="tl-item">
+        <div class="tl-item" data-ref="010,021">
           <div class="tl-year">CE 2024</div>
           <div class="tl-dot"><span class="dim"></span></div>
           <div class="tl-content">
@@ -942,17 +1125,17 @@
         <div class="section-rule"></div>
       </div>
 
-      <p class="body-text" style="margin-bottom:18px;">
+      <p class="body-text mb-18">
         화폐의 역사는 <strong>물성의 소멸</strong>이다. 무겁고 단단한 것에서 얇고 가벼운 것으로, 그리고 마침내 아무것도 없는 것으로. 조개는 손으로 꿸 수 있었고, 동전은 주머니에서 짤랑거렸으며, 지폐는 지갑을 얇게 만들었고, 카드는 플라스틱 한 장으로 줄어들었다. 지금의 디지털 결제는 그나마 남아 있던 플라스틱마저 지운다. 이 표는 다섯 시대의 화폐를 다섯 개의 물성 지표 — 무게, 경도, 내구성, 휴대성, 위조 저항 — 로 비교한다. 주목할 것은 <strong>내구성과 휴대성은 시간이 갈수록 극대화되는 반면, 무게와 경도는 무(無)에 수렴한다</strong>는 점이다. 물질은 사라지지만 기능은 강화된다 — 이것이 화폐 진화의 역설이다.
       </p>
-      <p class="body-text" style="margin-bottom:28px;">
+      <p class="body-text mb-28">
         동시에 <strong>위조 위험은 물성과 반비례</strong>한다. 조개는 자연이 만든 것이기에 위조 자체가 불가능했다. 금속 주화는 합금 조작으로 가치를 훔칠 수 있었지만 무게로 탄로 났다. 지폐는 종이 한 장 위에 그려진 약속이었기에 위조의 표적이 되었고, 각국은 홀로그램·특수잉크·워터마크 같은 <em>물성의 층위</em>를 겹겹이 더해 대응했다. 디지털 화폐는 물성이 0이 된 대신, 위조 저항을 <strong>암호학과 분산 원장</strong>이라는 순수 논리 구조로 이전했다. 물성이 사라진 자리를 수학이 메운 것이다.
       </p>
 
-      <table class="data-table" style="margin-bottom:36px;">
+      <table class="data-table mb-36">
         <thead>
           <tr>
-            <th style="min-width:130px;">Era</th>
+            <th class="min-w-130">Era</th>
             <th>Weight</th>
             <th>Hardness</th>
             <th>Durability</th>
@@ -967,7 +1150,7 @@
             <td><div class="dots"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="off"></span></div></td>
             <td><div class="dots"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div></td>
             <td><div class="dots"><span class="on"></span><span class="on"></span><span class="off"></span><span class="off"></span><span class="off"></span></div></td>
-            <td style="color:var(--dim)">○ 자연물 — 위조 원천 불가</td>
+            <td class="c-dim">○ 자연물 — 위조 원천 불가</td>
           </tr>
           <tr>
             <td class="hi tag">Metal Coins</td>
@@ -975,7 +1158,7 @@
             <td><div class="dots"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div></td>
             <td><div class="dots"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div></td>
             <td><div class="dots"><span class="on"></span><span class="on"></span><span class="on"></span><span class="off"></span><span class="off"></span></div></td>
-            <td style="color:var(--dim)">● 낮음 — 금속 조성 조작</td>
+            <td class="c-dim">● 낮음 — 금속 조성 조작</td>
           </tr>
           <tr>
             <td class="hi tag">Paper Money</td>
@@ -983,23 +1166,23 @@
             <td><div class="dots"><span class="on"></span><span class="off"></span><span class="off"></span><span class="off"></span><span class="off"></span></div></td>
             <td><div class="dots"><span class="on"></span><span class="on"></span><span class="off"></span><span class="off"></span><span class="off"></span></div></td>
             <td><div class="dots"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div></td>
-            <td style="color:var(--dim)">●●● 높음 — 정교한 위조 가능</td>
+            <td class="c-dim">●●● 높음 — 정교한 위조 가능</td>
           </tr>
           <tr>
             <td class="hi tag">Card / Digital</td>
-            <td style="color:var(--dim)">—</td>
-            <td style="color:var(--dim)">—</td>
+            <td class="c-dim">—</td>
+            <td class="c-dim">—</td>
             <td><div class="dots"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div></td>
             <td><div class="dots"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div></td>
-            <td style="color:var(--dim)">●●●● 매우 높음 — 데이터 해킹</td>
+            <td class="c-dim">●●●● 매우 높음 — 데이터 해킹</td>
           </tr>
           <tr>
             <td class="hi tag">Cryptocurrency</td>
-            <td style="color:var(--dim)">—</td>
-            <td style="color:var(--dim)">—</td>
+            <td class="c-dim">—</td>
+            <td class="c-dim">—</td>
             <td><div class="dots"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div></td>
             <td><div class="dots"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div></td>
-            <td style="color:var(--dim)">○ 수학적 보안 — 키 분실 시 영구 소멸</td>
+            <td class="c-dim">○ 수학적 보안 — 키 분실 시 영구 소멸</td>
           </tr>
         </tbody>
       </table>
@@ -1011,25 +1194,25 @@
       <div class="grid-2">
         <div>
           <div class="label">Shells / Cowrie</div>
-          <div class="entry-body" style="margin-top:6px;">
+          <div class="entry-body mt-6">
             단단하고 매끄럽다. 손바닥에서 구르는 느낌. 가방을 흔들면 딸랑이는 소리. 자연물 특유의 불균일함 — 비슷하지만 완전히 같지 않다. 줄에 꿰어 손목에 감으면 무게가 느껴진다. 젖으면 빛난다. 말리디아 여성들이 몇 주에 걸쳐 세척·건조해 수출 준비.
           </div>
         </div>
         <div>
           <div class="label">Metal Coins / Lydian</div>
-          <div class="entry-body" style="margin-top:6px;">
+          <div class="entry-body mt-6">
             차갑고 단단하고 무겁다. 바닥에 던지면 금속음. 진위 확인법 — 소리로 판별. 주머니에 들어가면 무게가 느껴진다. 시간이 지나면 마모 — 왕의 초상이 닳아 없어진다. 그리스인은 작은 거래용 동전을 입 안에 물고 다녔다. 땀에 노출되면 어두워진다.
           </div>
         </div>
         <div>
           <div class="label">Paper Money / Banknote</div>
-          <div class="entry-body" style="margin-top:6px;">
+          <div class="entry-body mt-6">
             얇고 유연하다. 구겨지고, 찢어지고, 불에 탄다. 진위 확인: 빛에 비추고, 만지고, 소리를 듣는다 — 시각·촉각·청각 모두 동원. 면 섬유 + 엠보싱으로 특수 촉감. 새 지폐는 빳빳하고 냄새가 난다. 낡은 지폐는 축축하고 구겨져 있다. 같은 액면가지만 촉감이 전혀 다르다.
           </div>
         </div>
         <div>
           <div class="label">Digital / Crypto</div>
-          <div class="entry-body" style="margin-top:6px;">
+          <div class="entry-body mt-6">
             아무것도 없다. 화면의 숫자만 있다. 탭 한 번이면 끝난다. 0.1초 만에 돈이 사라진다 — 사라졌다는 것도 잘 인식하지 못한다. 지갑을 열어볼 필요가 없다. 무게도, 소리도, 냄새도, 질감도 없다. 비트코인은 키를 잃으면 없다. 있지만 없는 것.
           </div>
         </div>
@@ -1059,61 +1242,61 @@
         <div class="section-rule"></div>
       </div>
 
-      <p class="body-text" style="margin-bottom:20px;">
+      <p class="body-text mb-20">
         "돈이란 무엇인가"라는 질문은 의외로 답하기 어렵다. 경제학은 기능으로 정의하고, 사회학은 관계로 설명하며, 철학은 허구로 규정한다. 세 관점 모두 공통된 결론에 이른다: <strong>돈은 물질이 아니라 합의다.</strong> 금화 한 개가 가치를 가지는 이유는 그것이 금이기 때문이 아니라, 다른 누군가도 그것을 금으로 인정할 것이라는 <em>상호 기대</em> 때문이다. 이 섹션은 돈의 본질을 세 개의 층 — 기능(영란은행), 사회학(짐멜), 인류학(하라리) — 으로 해부하고, 마지막으로 집단적 지향성이라는 현대 사회존재론의 개념으로 정리한다.
       </p>
 
-      <div class="label" style="margin-bottom:16px;">03-A &nbsp; Three Functions of Money — Bank of England, 2014</div>
+      <div class="label mb-16">03-A &nbsp; Three Functions of Money — Bank of England, 2014</div>
 
-      <div class="grid-3" style="margin-bottom:36px;">
-        <div class="ascii-box" style="margin:0;">
+      <div class="grid-3 mb-36">
+        <div class="ascii-box m-0">
           <div class="ascii-box-label">01</div>
-          <div class="label" style="margin-bottom:6px;">Medium of Exchange</div>
+          <div class="label mb-6">Medium of Exchange</div>
           <div class="entry-body">교환의 매개. 물물교환의 이중 일치 문제를 해결한다. 내가 원하는 것을 가진 사람이 내가 가진 것을 원하지 않아도 된다.</div>
         </div>
-        <div class="ascii-box" style="margin:0;">
+        <div class="ascii-box m-0">
           <div class="ascii-box-label">02</div>
-          <div class="label" style="margin-bottom:6px;">Store of Value</div>
+          <div class="label mb-6">Store of Value</div>
           <div class="entry-body">가치의 저장. 지금 벌어서 나중에 쓴다. 배추는 썩지만 돈은 썩지 않는다. 시간을 초월해 가치를 운반한다.</div>
         </div>
-        <div class="ascii-box" style="margin:0;">
+        <div class="ascii-box m-0">
           <div class="ascii-box-label">03</div>
-          <div class="label" style="margin-bottom:6px;">Unit of Account</div>
+          <div class="label mb-6">Unit of Account</div>
           <div class="entry-body">가치의 기준. 물건의 가치를 비교하고 측정한다. 사과 3개와 쌀 1kg 중 어느 것이 더 비싼가 — 돈이 있어야 비교 가능하다.</div>
         </div>
       </div>
 
       <div class="rule"></div>
 
-      <div class="label" style="margin-bottom:16px;">03-B &nbsp; Georg Simmel — The Philosophy of Money, 1900</div>
+      <div class="label mb-16">03-B &nbsp; Georg Simmel — The Philosophy of Money, 1900</div>
 
-      <div class="quote-block">
+      <div class="quote-block" data-ref="008">
         <div class="quote-text">"Money is the spider that weaves the web of all social relations."</div>
         <div class="quote-attr">— Georg Simmel, <em>Philosophie des Geldes</em>, 1900</div>
       </div>
 
-      <p class="body-text" style="margin-bottom:16px;">
+      <p class="body-text mb-16">
         독일 사회학자 짐멜의 핵심 논지: 돈은 단순한 경제 도구가 아니라 <strong>현대성(modernity)의 구조적 조건</strong>이다. 돈이 없으면 낯선 사람과의 거래가 불가능하다. 돈은 서로를 모르는 사람들 사이에서 신뢰를 제도화한다.
       </p>
-      <p class="body-text" style="margin-bottom:16px;">
+      <p class="body-text mb-16">
         짐멜의 경고: 돈이 확산될수록 <strong>모든 인간 관계는 도구화</strong>된다. 우정, 사랑, 도덕 — 모든 것이 환산 가능해진다. 돈은 가치를 측정 가능하게 만들면서 동시에 가치를 파괴한다.
       </p>
       <div class="entry-meta">핵심 개념: Vergesellschaftung (사회화) / 돈의 사회적 상호작용으로서의 본질</div>
 
       <div class="rule"></div>
 
-      <div class="label" style="margin-bottom:16px;">03-C &nbsp; Yuval Noah Harari — Sapiens, 2011</div>
+      <div class="label mb-16">03-C &nbsp; Yuval Noah Harari — Sapiens, 2011</div>
 
-      <div class="quote-block">
+      <div class="quote-block" data-ref="009">
         <div class="quote-text">"Money is the most universal and most efficient system of mutual trust ever devised."</div>
         <div class="quote-attr">— Yuval Noah Harari, <em>Sapiens: A Brief History of Humankind</em>, 2011</div>
       </div>
-      <div class="quote-block" style="margin-top:0;">
+      <div class="quote-block mt-0" data-ref="009">
         <div class="quote-text">"The real breakthrough in monetary history occurred when people gained trust in money that lacked inherent value, but was easier to store and transport."</div>
         <div class="quote-attr">— Ibid.</div>
       </div>
 
-      <p class="body-text" style="margin-bottom:16px;">
+      <p class="body-text mb-16">
         하라리의 핵심 논지: 돈은 <strong>공유된 허구(shared fiction)</strong>다. 금이 가치 있는 이유는 우리 모두가 금이 가치 있다고 믿기 때문이다. 이 믿음이 무너지면 금도 그냥 노란 금속이다.
       </p>
       <p class="body-text">
@@ -1122,9 +1305,9 @@
 
       <div class="rule"></div>
 
-      <div class="label" style="margin-bottom:16px;">03-D &nbsp; Collective Intentionality — 사회 존재론</div>
+      <div class="label mb-16">03-D &nbsp; Collective Intentionality — 사회 존재론</div>
 
-      <p class="body-text" style="margin-bottom:16px;">
+      <p class="body-text mb-16">
         현대 철학자 존 설(John Searle)은 화폐를 <strong>집단적 지향성(collective intentionality)</strong>의 대표적 사례로 제시한다. 어떤 종이 쪼가리가 "돈"이 되는 이유는, 우리 모두가 그것을 돈으로 취급하기로 암묵적으로 합의했기 때문이다. 이는 물리적 사실(brute fact)이 아니라 <strong>제도적 사실(institutional fact)</strong>이다 — 결혼, 국경, 대통령직과 같은 층위의 존재다. 공동체가 믿음을 거두는 순간, 그것은 다시 종이로 돌아간다.
       </p>
       <p class="body-text">
@@ -1142,17 +1325,17 @@
         <div class="section-rule"></div>
       </div>
 
-      <p class="body-text" style="margin-bottom:20px;">
+      <p class="body-text mb-20">
         1971년 8월 15일은 인류 경제사에서 가장 조용한 혁명이 일어난 날이다. 리처드 닉슨은 그날 저녁, 원래 방영되기로 했던 일요일 밤 드라마 <em>Bonanza</em>를 중단시키고 15분간 TV 생중계로 연설했다. 겉으로 내세운 명분은 임금·물가 동결과 수입관세 부과였지만, 연설 중간에 끼워진 한 문장이 세계 통화 질서를 끝장냈다: <strong>"나는 재무장관에게 달러의 금 태환을 일시적으로 정지할 것을 지시했다."</strong> "일시적"이라는 단어가 붙었지만, 그 정지는 한 번도 해제되지 않았다. 그 순간 이후 달러는 금이라는 물질적 담보에서 완전히 분리되었고, 전 세계 모든 주요 통화는 <em>무엇으로도 뒷받침되지 않는</em> 첫 번째 시대에 진입했다.
       </p>
-      <p class="body-text" style="margin-bottom:20px;">
+      <p class="body-text mb-20">
         이 결정의 배경은 단순했다. 베트남전의 천문학적 전비, 린든 존슨 시대의 "위대한 사회" 복지 지출, 그리고 만성적인 무역수지 적자 속에서 미국은 시중에 달러를 너무 많이 풀었다. 브레턴우즈 협정은 미국이 요청받으면 언제든 금 1온스 = $35에 달러를 금으로 바꿔줄 것을 약속했지만, 1971년 여름 시점에 전 세계에 떠돌던 달러는 포트 녹스(Fort Knox) 금고의 금 보유량의 몇 배에 달했다. 프랑스의 드골 대통령은 대서양 건너 달러를 배에 실어 보내며 "금으로 바꿔달라"고 요구했고, 영국은 30억 달러 규모의 금 인출을 준비 중이었다. <strong>뱅크런의 국제판</strong>이었다. 닉슨은 약속을 지키는 대신 약속을 깨기로 했다.
       </p>
-      <p class="body-text" style="margin-bottom:28px;">
+      <p class="body-text mb-28">
         충격은 즉각적이지만 조용했다. 다음 날 월요일 뉴욕 증시는 오히려 반등했고(사상 최대 상승폭), 대부분의 미국인은 자신이 가진 1달러 지폐가 방금 전날 밤 본질이 바뀌었다는 사실을 체감하지 못했다. 그러나 학자들은 이 날을 <strong>"현대 화폐가 태어난 날"</strong>로 기록한다. 그 이전까지 돈은 — 적어도 이론상으로는 — 어딘가에 보관된 금과 연결된 증서였다. 그 이후의 돈은 <strong>순수한 약속</strong>이었다. 미국 정부가 지속할 것이라는 약속, 연방준비제도가 통화량을 파괴적으로 늘리지 않을 것이라는 약속, 그리고 무엇보다 <em>내일도 사람들이 이 종이를 받을 것이라는 약속</em>. 닉슨 쇼크는 돈의 무게를 물리적 금에서 집단적 믿음으로 옮겨 실은 역사적 전환점이다.
       </p>
 
-      <div class="ascii-box" style="margin-bottom:28px;">
+      <div class="ascii-box mb-28" data-ref="005,006,007">
         <div class="ascii-box-label">EVENT LOG</div>
         <div class="collapse-row"><span class="c-key">DATE</span><span class="c-val hi">1971.08.15 (일요일 저녁, TV 생중계)</span></div>
         <div class="collapse-row"><span class="c-key">ACTOR</span><span class="c-val">Richard Nixon, 37대 미국 대통령</span></div>
@@ -1161,7 +1344,7 @@
         <div class="collapse-row"><span class="c-key">EFFECT</span><span class="c-val hi">브레턴우즈 체제 붕괴 → 변동환율제 시대 → 순수 법정통화(fiat) 시대</span></div>
       </div>
 
-      <div class="quote-block">
+      <div class="quote-block" data-ref="005,006,007">
         <div class="quote-text">"I have directed Secretary Connally to suspend, temporarily, the convertibility of the dollar into gold or other reserve assets, except in amounts and conditions determined to be in the interest of monetary stability and in the best interests of the United States."</div>
         <div class="quote-attr">— Richard Nixon, TV Address to the Nation, August 15, 1971</div>
       </div>
@@ -1174,19 +1357,19 @@
           <br>
           <div class="stat-row">
             <span class="stat-label">달러의 담보</span>
-            <span class="stat-val" style="color:var(--text);">금 (Gold)</span>
+            <span class="stat-val c-text">금 (Gold)</span>
           </div>
           <div class="stat-row">
             <span class="stat-label">금 1온스 = 달러</span>
-            <span class="stat-val" style="color:var(--text);">$35.00 (고정)</span>
+            <span class="stat-val c-text">$35.00 (고정)</span>
           </div>
           <div class="stat-row">
             <span class="stat-label">달러의 본질</span>
-            <span class="stat-val" style="color:var(--text);">금 교환 증서</span>
+            <span class="stat-val c-text">금 교환 증서</span>
           </div>
           <div class="stat-row">
             <span class="stat-label">가치의 근거</span>
-            <span class="stat-val" style="color:var(--text);">물리적 금 보유량</span>
+            <span class="stat-val c-text">물리적 금 보유량</span>
           </div>
         </div>
         <div>
@@ -1194,29 +1377,29 @@
           <br>
           <div class="stat-row">
             <span class="stat-label">달러의 담보</span>
-            <span class="stat-val" style="color:var(--dim);">없음 (None)</span>
+            <span class="stat-val c-dim">없음 (None)</span>
           </div>
           <div class="stat-row">
             <span class="stat-label">금 1온스 = 달러</span>
-            <span class="stat-val" style="color:var(--muted);">시장 변동 (2024: ~$2,300)</span>
+            <span class="stat-val c-muted">시장 변동 (2024: ~$2,300)</span>
           </div>
           <div class="stat-row">
             <span class="stat-label">달러의 본질</span>
-            <span class="stat-val" style="color:var(--muted);">미국 정부에 대한 신뢰</span>
+            <span class="stat-val c-muted">미국 정부에 대한 신뢰</span>
           </div>
           <div class="stat-row">
             <span class="stat-label">가치의 근거</span>
-            <span class="stat-val" style="color:var(--muted);">집단적 합의</span>
+            <span class="stat-val c-muted">집단적 합의</span>
           </div>
         </div>
       </div>
 
       <div class="rule"></div>
 
-      <p class="body-text" style="margin-bottom:12px;">
+      <p class="body-text mb-12">
         <strong>왜 이것이 중요한가:</strong> 1971년 이전의 지폐는 엄밀히 말해 "돈"이 아니라 금의 "증서"였다. 어딘가에 실제 금이 있고, 지폐는 그것을 받을 권리였다. 1971년 8월 15일, 그 연결이 끊겼다.
       </p>
-      <p class="body-text" style="margin-bottom:12px;">
+      <p class="body-text mb-12">
         이후 달러는 — 그리고 달러에 연동된 모든 통화는 — 순수한 신뢰 위에 떠 있다. 미국 정부가 존재하고, 미국 경제가 작동하고, 사람들이 계속 달러를 받아들일 것이라는 믿음.
       </p>
       <p class="body-text">
@@ -1234,16 +1417,16 @@
         <div class="section-rule"></div>
       </div>
 
-      <p class="body-text" style="margin-bottom:18px;">
+      <p class="body-text mb-18">
         돈이 사라진 것은 지갑 속에서만이 아니다. <strong>뇌 속에서도 사라지고 있다.</strong> 행동경제학과 신경과학은 지난 20년간 일관되게 같은 결과를 보여왔다 — 지불 방식이 달라지면 같은 금액이라도 인간이 느끼는 심리적 무게가 달라진다. 현금을 건네는 순간 작동하던 "아까움"이 카드에서는 희미해지고, 모바일 탭 결제에서는 거의 사라진다. 이 둔감화는 단순한 편의의 부작용이 아니다. 신용카드 산업과 핀테크 업계는 수십 년에 걸쳐 <em>지불의 마찰</em>을 의도적으로 줄여왔으며, 그 결과 현대인은 역사상 가장 쉽게, 그리고 가장 무감각하게 돈을 쓴다.
       </p>
-      <p class="body-text" style="margin-bottom:28px;">
+      <p class="body-text mb-28">
         Drazen Prelec과 George Loewenstein은 2001년 논문 <em>The Red and the Black</em>에서 이 현상을 <strong>"지불의 고통(pain of paying)"</strong>이라 명명했다. 그들은 MBA 학생들에게 프로 스포츠 티켓을 경매했을 때, 신용카드로 결제하는 그룹이 현금 그룹보다 평균 <strong>2배 이상</strong>을 지불한다는 사실을 발견했다. MIT 경영대학원의 후속 연구는 fMRI 스캐너 안에서 피험자에게 물건을 구매시키며, 현금 결제 시에만 통증·혐오와 연관된 <em>뇌섬엽(insula)</em>이 활성화되는 것을 확인했다. 뇌는 말 그대로 현금이 나갈 때 <strong>아프다</strong>. 카드·디지털 결제는 이 신호를 차단한다. 돈의 물성이 사라진 대가는 단순한 편의가 아니라, 인간이 자신의 소비를 감각하는 능력 그 자체의 퇴화다.
       </p>
 
-      <div class="label" style="margin-bottom:14px;">05-A &nbsp; Pain of Paying — 지불의 고통</div>
+      <div class="label mb-14">05-A &nbsp; Pain of Paying — 지불의 고통</div>
 
-      <div class="grid-2" style="margin-bottom:28px;">
+      <div class="grid-2 mb-28">
         <div>
           <div class="entry-body">
             현금을 낼 때 인간의 뇌는 손실에 반응하는 영역(insula)을 활성화한다. fMRI 연구 결과: 현금 지출 = 물리적 통증과 같은 신경 반응. 이 "지불의 고통"이 과소비를 억제한다.
@@ -1256,9 +1439,9 @@
         </div>
       </div>
 
-      <div class="label" style="margin-bottom:14px;">05-B &nbsp; Spending Comparison — 지불 방식별 소비 차이</div>
+      <div class="label mb-14">05-B &nbsp; Spending Comparison — 지불 방식별 소비 차이</div>
 
-      <table class="data-table" style="margin-bottom:28px;">
+      <table class="data-table mb-28">
         <thead>
           <tr>
             <th>Phenomenon</th>
@@ -1274,18 +1457,18 @@
             <td class="hi">HIGH</td>
             <td>MED</td>
             <td>LOW</td>
-            <td style="color:var(--dim);">VERY LOW</td>
+            <td class="c-dim">VERY LOW</td>
           </tr>
           <tr>
             <td>Spending Awareness (소비 인식)</td>
             <td class="hi">HIGH</td>
             <td>MED</td>
             <td>LOW</td>
-            <td style="color:var(--dim);">VERY LOW</td>
+            <td class="c-dim">VERY LOW</td>
           </tr>
           <tr>
             <td>Impulse Purchase Rate (충동구매)</td>
-            <td style="color:var(--dim);">LOW</td>
+            <td class="c-dim">LOW</td>
             <td>MED</td>
             <td>HIGH</td>
             <td class="hi">HIGHEST</td>
@@ -1295,11 +1478,11 @@
             <td class="hi">HIGH</td>
             <td>MED</td>
             <td>LOW</td>
-            <td style="color:var(--dim);">VERY LOW</td>
+            <td class="c-dim">VERY LOW</td>
           </tr>
           <tr>
             <td>Unhealthy Food Purchase (건강에 안 좋은 식품)</td>
-            <td style="color:var(--dim);">LOW</td>
+            <td class="c-dim">LOW</td>
             <td>MED</td>
             <td class="hi">HIGH</td>
             <td class="hi">HIGHEST</td>
@@ -1307,7 +1490,7 @@
         </tbody>
       </table>
 
-      <div class="label" style="margin-bottom:14px;">05-C &nbsp; Key Research Findings</div>
+      <div class="label mb-14">05-C &nbsp; Key Research Findings</div>
 
       <div class="entry">
         <div class="entry-num">[R-001]</div>
@@ -1341,6 +1524,54 @@
           <div class="entry-meta">ECB SPACE Report, 2024</div>
         </div>
       </div>
+
+      <div class="rule"></div>
+
+      <div class="label" data-ref="012,013,014">05-E &nbsp; Pain of Paying — 결제 방식별 심리 강도</div>
+      <p class="body-text" data-ref="012,013,014">
+        같은 금액을 지불해도 결제 수단에 따라 <strong>심리적 손실감(pain of paying)</strong>은 크게 달라진다. 신경경제학 연구는 현금 결제 시 뇌의 섬엽(insula)이 가장 강하게 반응한다고 보고한다 — 신체적 통증과 같은 회로다. 디지털·자동 결제로 갈수록 이 신호는 약해지고, 지출 자각도 함께 무뎌진다.
+      </p>
+      <div class="stat-row"><span class="stat-label">현금</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="92"></div></div><span class="stat-val">5.0 / 5</span></div></div>
+      <div class="stat-row"><span class="stat-label">체크카드</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="68"></div></div><span class="stat-val">3.6 / 5</span></div></div>
+      <div class="stat-row"><span class="stat-label">신용카드</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="48"></div></div><span class="stat-val">2.5 / 5</span></div></div>
+      <div class="stat-row"><span class="stat-label">모바일 페이</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="32"></div></div><span class="stat-val">1.7 / 5</span></div></div>
+      <div class="stat-row"><span class="stat-label">자동 결제·구독</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="14"></div></div><span class="stat-val">0.7 / 5</span></div></div>
+      <div class="entry-meta mt-10">출처 합성 — Prelec &amp; Loewenstein (Pain of Paying), Frontiers in Neuroscience 2019, MDPI Spendception 2025</div>
+
+      <div class="rule"></div>
+
+      <div class="label" data-ref="010,012">05-F &nbsp; 같은 구매에서의 평균 지출 차이 (Reference 기준)</div>
+      <table class="data-table mt-8">
+        <thead>
+          <tr>
+            <th>결제 수단</th>
+            <th>지출 비교</th>
+            <th>증가율</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="hi tag">현금</td>
+            <td><div class="dots"><span class="on"></span><span class="on"></span><span class="off"></span><span class="off"></span><span class="off"></span></div></td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td class="hi tag">체크카드</td>
+            <td><div class="dots"><span class="on"></span><span class="on"></span><span class="on"></span><span class="off"></span><span class="off"></span></div></td>
+            <td>+12 ~ 18%</td>
+          </tr>
+          <tr>
+            <td class="hi tag">신용카드</td>
+            <td><div class="dots"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="off"></span></div></td>
+            <td>+24 ~ 30%</td>
+          </tr>
+          <tr>
+            <td class="hi tag">모바일 페이</td>
+            <td><div class="dots"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div></td>
+            <td>+30 ~ 38%</td>
+          </tr>
+        </tbody>
+      </table>
     </section>
 
     <!-- ══════════════════════════════════ -->
@@ -1353,10 +1584,10 @@
         <div class="section-rule"></div>
       </div>
 
-      <p class="body-text" style="margin-bottom:18px;">
+      <p class="body-text mb-18">
         화폐의 본질은 중심이 아니라 가장자리에서 드러난다. 표준화된 지폐와 동전은 너무 익숙해 <em>돈이 무엇으로 만들어졌는가</em>라는 질문을 지운다. 그러나 3.6미터짜리 돌, 고등어 통조림, 담배, 조개구슬처럼 기이한 사례들을 마주하면, 우리는 다시 "왜 이것이 돈으로 작동했는가"를 묻게 된다. 그리고 그 답은 매번 같은 결론으로 수렴한다 — <strong>공동체가 그것을 돈으로 취급하기로 합의했기 때문이다.</strong> 이 섹션에 실린 다섯 개의 예외 사례는, 물성과 가치의 연결을 끊고 <em>합의만 남긴</em> 순간들의 기록이다.
       </p>
-      <p class="body-text" style="margin-bottom:28px;">
+      <p class="body-text mb-28">
         특히 야프 섬의 라이 스톤은 현대 암호화폐를 이해하는 가장 투명한 비유다. 돌은 움직이지 않고, 바다 밑에 가라앉은 돌도 여전히 유효하며, 소유권은 오직 공동체의 집단 기억 속에 있다. 이는 <strong>분산 원장(distributed ledger)</strong>의 고대판이며, 비트코인 블록체인이 하는 일 — 누가 무엇을 소유하는지에 대한 합의를 참여자 전원이 공유하는 것 — 과 구조적으로 동일하다. 3천 년 전의 미크로네시아 섬주민들은 21세기 암호학자들이 재발견한 원리를 이미 실천하고 있었다. 돈의 실체는 돌이 아니라 기록이었고, 기록은 머릿속에 있었다.
       </p>
 
@@ -1449,14 +1680,14 @@
         <div class="section-rule"></div>
       </div>
 
-      <p class="body-text" style="margin-bottom:18px;">
+      <p class="body-text mb-18">
         화폐 붕괴는 경제학의 실험실이다. 정상적 상황에서 돈의 본질은 보이지 않는다 — 우리는 매일 지폐를 주고받으며 그 뒤에 있는 <em>약속</em>의 구조를 의식하지 않는다. 그러나 하이퍼인플레이션이 닥치면 그 구조가 갑자기 드러난다. 지폐는 물리적으로 동일한 종이지만, 그것에 대한 믿음이 녹는 순간 가치도 함께 녹는다. 바이마르 공화국의 시민은 아침에 2,000억 마르크였던 빵이 저녁에 3,000억 마르크가 되는 경험을 매일 반복했다. 짐바브웨는 결국 100조 달러짜리 지폐를 찍었지만, 그 지폐는 발행 당일에도 버스 요금에 미치지 못했다. 이 사건들은 돈이 <strong>물리적 종이가 아니라 공동체의 믿음</strong>이라는 사실을 가장 잔인한 방식으로 증명한다.
       </p>
-      <p class="body-text" style="margin-bottom:28px;">
+      <p class="body-text mb-28">
         세 사례의 원인은 놀랄 만큼 동일하다: <strong>정부가 감당할 수 없는 지출을 지폐 인쇄로 메우기 시작한다.</strong> 바이마르는 전쟁 배상금과 루르 점령, 짐바브웨는 농지 개혁 실패와 정치적 지출, 베네수엘라는 유가 하락과 포퓰리즘 재정이 방아쇠였다. 인쇄기가 돌아가기 시작하면 처음엔 아무 일도 일어나지 않는다 — 신뢰는 관성을 가진다. 그러나 어느 임계점을 지나면 기대가 뒤집히고, 그 순간부터 <em>모든 사람이 빨리 지폐를 버리려 한다</em>. 이 전환은 수학이 아니라 심리의 사건이다. 돈은 믿음으로 태어나고 믿음으로 죽는다. 화폐 붕괴는 경제 위기가 아니라 <strong>사회적 합의의 죽음</strong>이다.
       </p>
 
-      <div class="collapse-event">
+      <div class="collapse-event" data-ref="019">
         <div class="collapse-header">
           <span class="collapse-year">1923</span>
           <span class="collapse-title">Weimar Germany — Hyperinflation</span>
@@ -1500,7 +1731,7 @@
         </div>
       </div>
 
-      <div class="ascii-box" style="margin-top:24px;">
+      <div class="ascii-box mt-24">
         <div class="ascii-box-label">Pattern Analysis</div>
         <p class="body-text">
           세 사례의 공통점: <strong>①정부가 지폐를 과잉 인쇄 → ②공급 증가 → ③신뢰 붕괴 → ④가격 폭등 → ⑤행동 변화</strong><br><br>
@@ -1520,42 +1751,42 @@
         <div class="section-rule"></div>
       </div>
 
-      <p class="body-text" style="margin-bottom:18px;">
+      <p class="body-text mb-18">
         탈물질화는 더 이상 전망이 아니라 <strong>이미 진행된 사실</strong>이다. 2014년까지만 해도 전 세계 POS(point of sale) 거래의 44%가 현금이었다. 2024년 이 수치는 15%까지 떨어졌다 — 10년 만에 3분의 1로 줄어든 셈이다. 같은 기간 디지털 결제 시장은 1.7조 달러에서 18.7조 달러로 <strong>11배</strong> 팽창했고, 모바일 지갑 사용자는 20억 명을 넘어 2026년 50억 명에 도달할 전망이다. 이 전환은 단순한 기술 보급이 아니라, 인류가 역사상 처음으로 "대다수의 거래를 물리적 매개 없이 수행하는 종"이 되었음을 뜻한다.
       </p>
-      <p class="body-text" style="margin-bottom:28px;">
+      <p class="body-text mb-28">
         동시에 주목할 것은 <strong>통화량 자체의 팽창</strong>이다. 2008년 글로벌 금융위기 이후 연방준비제도는 양적완화(QE)를 도입했고, 2020년 코로나19 대응으로 정점에 달했다. 미국 M2 통화량은 2005년 6.5조 달러에서 2024년 21.3조 달러로 약 3.3배 증가했다. 인쇄된 것은 종이가 아니라 <em>전자장부의 숫자</em>다. 현대의 돈은 물리적 생산을 건너뛴 채, 중앙은행 대차대조표의 한 줄로 탄생한다. 한편 유럽중앙은행(ECB)의 2024년 SPACE 조사는 역설을 드러낸다 — 현금 결제가 줄어드는데도 현금 <em>보유</em>는 줄지 않는다. 사람들이 현금을 원하는 이유는 구매가 아니라 <strong>프라이버시, 통제감, 지출 인식, 즉시 완결성</strong>이다. 현금은 결제 수단으로서 죽어가고 있지만, 가치 저장과 익명성의 보루로서는 여전히 살아 있다.
       </p>
 
-      <div class="label" style="margin-bottom:14px;">08-A &nbsp; Global Cash Share in POS Transactions</div>
-      <div class="stat-row"><span class="stat-label">2014</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" style="width:44%"></div></div><span class="stat-val">44% Cash</span></div></div>
-      <div class="stat-row"><span class="stat-label">2018</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" style="width:30%"></div></div><span class="stat-val">30% Cash</span></div></div>
-      <div class="stat-row"><span class="stat-label">2021</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" style="width:20%"></div></div><span class="stat-val">20% Cash</span></div></div>
-      <div class="stat-row" style="margin-bottom:28px;"><span class="stat-label">2024</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" style="width:15%"></div></div><span class="stat-val">15% Cash</span></div></div>
+      <div class="label mb-14">08-A &nbsp; Global Cash Share in POS Transactions</div>
+      <div class="stat-row"><span class="stat-label">2014</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="44"></div></div><span class="stat-val">44% Cash</span></div></div>
+      <div class="stat-row"><span class="stat-label">2018</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="30"></div></div><span class="stat-val">30% Cash</span></div></div>
+      <div class="stat-row"><span class="stat-label">2021</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="20"></div></div><span class="stat-val">20% Cash</span></div></div>
+      <div class="stat-row mb-28"><span class="stat-label">2024</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="15"></div></div><span class="stat-val">15% Cash</span></div></div>
 
-      <div class="label" style="margin-bottom:14px;">08-B &nbsp; Digital Payment Market Size</div>
-      <div class="stat-row"><span class="stat-label">2014</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" style="width:9%"></div></div><span class="stat-val">$1.7 Trillion</span></div></div>
-      <div class="stat-row" style="margin-bottom:28px;"><span class="stat-label">2024</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" style="width:100%"></div></div><span class="stat-val">$18.7 Trillion (11×)</span></div></div>
+      <div class="label mb-14">08-B &nbsp; Digital Payment Market Size</div>
+      <div class="stat-row"><span class="stat-label">2014</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="9"></div></div><span class="stat-val">$1.7 Trillion</span></div></div>
+      <div class="stat-row mb-28"><span class="stat-label">2024</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="100"></div></div><span class="stat-val">$18.7 Trillion (11×)</span></div></div>
 
-      <div class="label" style="margin-bottom:14px;">08-C &nbsp; Digital Wallet Users</div>
-      <div class="stat-row"><span class="stat-label">2024 (실제)</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" style="width:40%"></div></div><span class="stat-val">2.0 Billion</span></div></div>
-      <div class="stat-row" style="margin-bottom:28px;"><span class="stat-label">2026 (예상)</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" style="width:100%"></div></div><span class="stat-val">5.0 Billion</span></div></div>
+      <div class="label mb-14">08-C &nbsp; Digital Wallet Users</div>
+      <div class="stat-row"><span class="stat-label">2024 (실제)</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="40"></div></div><span class="stat-val">2.0 Billion</span></div></div>
+      <div class="stat-row mb-28"><span class="stat-label">2026 (예상)</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="100"></div></div><span class="stat-val">5.0 Billion</span></div></div>
 
-      <div class="label" style="margin-bottom:14px;">08-D &nbsp; US M2 Money Supply (Federal Reserve)</div>
-      <div class="stat-row"><span class="stat-label">2005</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" style="width:30%"></div></div><span class="stat-val">$6.5T</span></div></div>
-      <div class="stat-row"><span class="stat-label">2008 (QE1 시작)</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" style="width:38%"></div></div><span class="stat-val">$8.0T</span></div></div>
-      <div class="stat-row"><span class="stat-label">2020 (COVID 피크)</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" style="width:42%"></div></div><span class="stat-val">$8.9T (Fed 자산)</span></div></div>
-      <div class="stat-row" style="margin-bottom:28px;"><span class="stat-label">2024</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" style="width:100%"></div></div><span class="stat-val">$21.3T (M2)</span></div></div>
+      <div class="label mb-14">08-D &nbsp; US M2 Money Supply (Federal Reserve)</div>
+      <div class="stat-row"><span class="stat-label">2005</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="30"></div></div><span class="stat-val">$6.5T</span></div></div>
+      <div class="stat-row"><span class="stat-label">2008 (QE1 시작)</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="38"></div></div><span class="stat-val">$8.0T</span></div></div>
+      <div class="stat-row"><span class="stat-label">2020 (COVID 피크)</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="42"></div></div><span class="stat-val">$8.9T (Fed 자산)</span></div></div>
+      <div class="stat-row mb-28"><span class="stat-label">2024</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="100"></div></div><span class="stat-val">$21.3T (M2)</span></div></div>
 
-      <div class="label" style="margin-bottom:14px;">08-E &nbsp; Unbanked Population</div>
-      <div class="stat-row"><span class="stat-label">전 세계 성인</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" style="width:17%"></div></div><span class="stat-val">17% (약 14억 명)</span></div></div>
-      <div class="stat-row" style="margin-bottom:28px;"><span class="stat-label">농촌 지역 무은행 비율</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" style="width:55%"></div></div><span class="stat-val">55% of unbanked</span></div></div>
+      <div class="label mb-14">08-E &nbsp; Unbanked Population</div>
+      <div class="stat-row"><span class="stat-label">전 세계 성인</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="17"></div></div><span class="stat-val">17% (약 14억 명)</span></div></div>
+      <div class="stat-row mb-28"><span class="stat-label">농촌 지역 무은행 비율</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="55"></div></div><span class="stat-val">55% of unbanked</span></div></div>
 
-      <div class="label" style="margin-bottom:14px;">08-F &nbsp; ECB SPACE 2024 — Why People Keep Cash</div>
-      <div class="stat-row"><span class="stat-label">익명성·프라이버시 보호</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" style="width:41%"></div></div><span class="stat-val">41%</span></div></div>
-      <div class="stat-row"><span class="stat-label">지출 인식 제고</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" style="width:35%"></div></div><span class="stat-val">35%</span></div></div>
-      <div class="stat-row"><span class="stat-label">즉시 결제 완료</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" style="width:30%"></div></div><span class="stat-val">30%</span></div></div>
-      <div class="stat-row" style="margin-bottom:28px;"><span class="stat-label">더 많은 곳에서 수락</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" style="width:28%"></div></div><span class="stat-val">28%</span></div></div>
+      <div class="label mb-14">08-F &nbsp; ECB SPACE 2024 — Why People Keep Cash</div>
+      <div class="stat-row"><span class="stat-label">익명성·프라이버시 보호</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="41"></div></div><span class="stat-val">41%</span></div></div>
+      <div class="stat-row"><span class="stat-label">지출 인식 제고</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="35"></div></div><span class="stat-val">35%</span></div></div>
+      <div class="stat-row"><span class="stat-label">즉시 결제 완료</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="30"></div></div><span class="stat-val">30%</span></div></div>
+      <div class="stat-row mb-28"><span class="stat-label">더 많은 곳에서 수락</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="28"></div></div><span class="stat-val">28%</span></div></div>
 
       <p class="body-text">
         현금이 사라지지 않는 이유는 단순한 습관이 아니다. <strong>익명성과 통제감</strong> — 디지털 결제 시스템이 줄 수 없는 경험. 현금은 정부도, 기업도, 알고리즘도 개입할 수 없는 거래를 가능하게 한다.
@@ -1572,10 +1803,10 @@
         <div class="section-rule"></div>
       </div>
 
-      <p class="body-text" style="margin-bottom:18px;">
+      <p class="body-text mb-18">
         미래의 돈을 예측한다는 것은 기술을 예측하는 것이 아니라 <strong>다음 세대가 무엇을 신뢰할 것인가</strong>를 예측하는 일이다. 화폐는 언제나 그 시대가 가장 확실하다고 믿는 것 위에 구축된다 — 고대인에게는 금의 희소성, 근대인에게는 국가의 권위, 21세기인에게는 무엇이 될 것인가? 이 섹션이 제시하는 네 가지 시나리오(CBDC, 관심, 데이터, 에너지)는 모두 <strong>이미 부분적으로 작동 중</strong>인 시스템들이다. 미래는 이들 중 하나가 승리하는 방식이 아니라, 이들이 겹쳐진 하이브리드로 도래할 가능성이 높다.
       </p>
-      <p class="body-text" style="margin-bottom:28px;">
+      <p class="body-text mb-28">
         각 시나리오는 이 프로젝트의 핵심 논제 — <em>가치가 클수록 물성은 약해진다</em> — 를 한 단계씩 더 밀어붙인다. CBDC는 현금의 마지막 잔여 물성을 제거하고 국가를 <em>전능한 관찰자</em>로 만든다. 관심 화폐는 인간의 주의력 자체를 거래 가능한 자원으로 전환한다. 데이터 화폐는 우리의 행동 기록을 담보로 삼는다. 에너지 화폐(비트코인이 그 원형이다)는 순수 계산력과 전력 소비를 가치의 근거로 치환한다. 공통점은 모두 <strong>비물질적 자원을 희소성의 근거로 삼는다</strong>는 것이다. 돈은 돌에서 금으로, 종이로, 전자 기록으로, 그리고 마침내 <em>관찰·주의·계산</em> 자체로 이동하고 있다. 각 시나리오는 "무엇이 희소하고, 무엇이 신뢰를 만드는가"라는 오래된 질문에 대한 다른 답이며, 네 개의 답은 동시에 진실일 수 있다.
       </p>
 
@@ -1616,12 +1847,71 @@
         <div class="scenario-row"><span class="s-key">FUTURE</span><span class="s-val">기후 위기 + 에너지 희소화 → 배터리, 태양광 발전 용량이 가장 비싼 자산이 되는 세계</span></div>
       </div>
 
-      <div class="ascii-box" style="margin-top:8px;">
+      <div class="ascii-box mt-8">
         <div class="ascii-box-label">Common Thread</div>
         <p class="body-text">
           네 시나리오의 공통점: 모두 <strong>비물질적인 것</strong>이 화폐가 된다. 데이터, 관심, 에너지, 디지털 신호. 물성의 소멸은 계속된다. 다음 화폐는 아마도 더 작고, 더 보이지 않고, 더 침투적일 것이다.
         </p>
       </div>
+
+      <div class="rule"></div>
+
+      <div class="label" data-ref="011">09-E &nbsp; CBDC 도입 확률 — 2030 시나리오</div>
+      <p class="body-text" data-ref="011">
+        134개국이 CBDC를 연구 중이며 6개국이 이미 출시했다(2024). 2030년까지 주요 통화권의 CBDC 도입 가능성을 분석가들의 컨센서스로 추정한 결과:
+      </p>
+      <div class="stat-row"><span class="stat-label">중국 e-CNY (이미 운영)</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="96"></div></div><span class="stat-val">96%</span></div></div>
+      <div class="stat-row"><span class="stat-label">유럽 디지털 유로</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="78"></div></div><span class="stat-val">78%</span></div></div>
+      <div class="stat-row"><span class="stat-label">한국 한국CBDC</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="62"></div></div><span class="stat-val">62%</span></div></div>
+      <div class="stat-row"><span class="stat-label">영국 디지털 파운드</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="54"></div></div><span class="stat-val">54%</span></div></div>
+      <div class="stat-row"><span class="stat-label">일본 디지털 엔</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="46"></div></div><span class="stat-val">46%</span></div></div>
+      <div class="stat-row"><span class="stat-label">미연준 디지털 달러</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="34"></div></div><span class="stat-val">34%</span></div></div>
+      <div class="entry-meta mt-10">출처 합성 — Atlantic Council CBDC Tracker 2024, BIS Working Paper 2024-880, Yale 정책 분석</div>
+
+      <div class="rule"></div>
+
+      <div class="label" data-ref="022">09-F &nbsp; 비물질화 화폐의 침투 강도 — 5단계 평가</div>
+      <table class="data-table mt-8">
+        <thead>
+          <tr>
+            <th>화폐 유형</th>
+            <th>가시성</th>
+            <th>통제 가능성</th>
+            <th>프라이버시 침해</th>
+            <th>중앙집중도</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="hi tag">CBDC</td>
+            <td><div class="dots"><span class="on"></span><span class="on"></span><span class="off"></span><span class="off"></span><span class="off"></span></div></td>
+            <td><div class="dots"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div></td>
+            <td><div class="dots"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div></td>
+            <td><div class="dots"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div></td>
+          </tr>
+          <tr>
+            <td class="hi tag">관심 화폐</td>
+            <td><div class="dots"><span class="on"></span><span class="off"></span><span class="off"></span><span class="off"></span><span class="off"></span></div></td>
+            <td><div class="dots"><span class="on"></span><span class="on"></span><span class="on"></span><span class="off"></span><span class="off"></span></div></td>
+            <td><div class="dots"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="off"></span></div></td>
+            <td><div class="dots"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="off"></span></div></td>
+          </tr>
+          <tr>
+            <td class="hi tag">데이터 화폐</td>
+            <td><div class="dots"><span class="on"></span><span class="off"></span><span class="off"></span><span class="off"></span><span class="off"></span></div></td>
+            <td><div class="dots"><span class="on"></span><span class="on"></span><span class="off"></span><span class="off"></span><span class="off"></span></div></td>
+            <td><div class="dots"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div></td>
+            <td><div class="dots"><span class="on"></span><span class="on"></span><span class="on"></span><span class="off"></span><span class="off"></span></div></td>
+          </tr>
+          <tr>
+            <td class="hi tag">에너지 화폐</td>
+            <td><div class="dots"><span class="on"></span><span class="on"></span><span class="on"></span><span class="off"></span><span class="off"></span></div></td>
+            <td><div class="dots"><span class="on"></span><span class="off"></span><span class="off"></span><span class="off"></span><span class="off"></span></div></td>
+            <td><div class="dots"><span class="on"></span><span class="off"></span><span class="off"></span><span class="off"></span><span class="off"></span></div></td>
+            <td><div class="dots"><span class="off"></span><span class="off"></span><span class="off"></span><span class="off"></span><span class="off"></span></div></td>
+          </tr>
+        </tbody>
+      </table>
     </section>
 
     <!-- ══════════════════════════════════ -->
@@ -1634,70 +1924,70 @@
         <div class="section-rule"></div>
       </div>
 
-      <div class="q-item">
+      <div class="q-item" data-ref="009">
         <div class="q-id">[Q-001]</div>
         <div>
           <div class="q-text">"Money is the most universal and most efficient system of mutual trust ever devised."</div>
           <div class="q-source">— Yuval Noah Harari / Sapiens: A Brief History of Humankind / 2011</div>
         </div>
       </div>
-      <div class="q-item">
+      <div class="q-item" data-ref="008">
         <div class="q-id">[Q-002]</div>
         <div>
           <div class="q-text">"Money is the spider that weaves the web of all social relations."</div>
           <div class="q-source">— Georg Simmel / Philosophie des Geldes (The Philosophy of Money) / 1900</div>
         </div>
       </div>
-      <div class="q-item">
+      <div class="q-item" data-ref="005,006">
         <div class="q-id">[Q-003]</div>
         <div>
           <div class="q-text">"I have directed Secretary Connally to suspend, temporarily, the convertibility of the dollar into gold."</div>
           <div class="q-source">— Richard Nixon / TV Address to the Nation / August 15, 1971</div>
         </div>
       </div>
-      <div class="q-item">
+      <div class="q-item" data-ref="025">
         <div class="q-id">[Q-004]</div>
         <div>
           <div class="q-text">"A purely peer-to-peer version of electronic cash would allow online payments to be sent directly from one party to another without going through a financial institution."</div>
           <div class="q-source">— Satoshi Nakamoto / Bitcoin: A Peer-to-Peer Electronic Cash System / October 2008</div>
         </div>
       </div>
-      <div class="q-item">
+      <div class="q-item" data-ref="001">
         <div class="q-id">[Q-005]</div>
         <div>
           <div class="q-text">"Inflation is always and everywhere a monetary phenomenon in the sense that it is and can be produced only by a more rapid increase in the quantity of money than in output."</div>
           <div class="q-source">— Milton Friedman / The Counter-Revolution in Monetary Theory / 1970</div>
         </div>
       </div>
-      <div class="q-item">
+      <div class="q-item" data-ref="001">
         <div class="q-id">[Q-006]</div>
         <div>
           <div class="q-text">"The Emperor makes it a capital offense to refuse his paper money. With these pieces of paper, made as I have described, he causes all payments to be made throughout every province and kingdom and region of his empire."</div>
           <div class="q-source">— Marco Polo, describing Kublai Khan's paper money / The Travels of Marco Polo / 1300</div>
         </div>
       </div>
-      <div class="q-item">
+      <div class="q-item" data-ref="001">
         <div class="q-id">[Q-007]</div>
         <div>
           <div class="q-text">"Money is a social technology."</div>
           <div class="q-source">— Bank of England / Quarterly Bulletin / 2014 Q1</div>
         </div>
       </div>
-      <div class="q-item">
+      <div class="q-item" data-ref="019">
         <div class="q-id">[Q-008]</div>
         <div>
           <div class="q-text">"A wheelbarrow full of money could not buy a newspaper. One student ordered a cup of coffee for 5,000 marks; a second cup cost 7,000."</div>
           <div class="q-source">— Contemporary account / Weimar Germany hyperinflation / 1923</div>
         </div>
       </div>
-      <div class="q-item">
+      <div class="q-item" data-ref="009">
         <div class="q-id">[Q-009]</div>
         <div>
           <div class="q-text">"The real breakthrough was not gold. It was the moment people decided to trust something that had no intrinsic value."</div>
           <div class="q-source">— Yuval Noah Harari / Sapiens / 2011</div>
         </div>
       </div>
-      <div class="q-item">
+      <div class="q-item" data-ref="015,016">
         <div class="q-id">[Q-010]</div>
         <div>
           <div class="q-text">"The stone was still good — it had never been seen since it sank, but it is still owned today by someone on Yap."</div>
@@ -1782,38 +2072,173 @@
     });
   });
 
-  // ── Body reveal: rise + scramble on scroll ────────────────────
+  // ── Cover splash → sidebar reveal → body reveal sequencing ────
+  (function cover() {
+    const SCRAMBLE_CHARS = "!<>-_\\/[]{}=+*^?#________";
+    const randCh = () => SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)];
+
+    function miniScramble(el) {
+      if (!el) return;
+      const next = el.dataset.txt || el.textContent || "";
+      if (!next.trim()) return;
+      el.dataset.txt = next;
+      const len = next.length;
+      const queue = [];
+      for (let i = 0; i < len; i++) {
+        queue.push({
+          to: next[i],
+          start: Math.floor(Math.random() * 12),
+          end: 16 + Math.floor(Math.random() * 18),
+          char: ""
+        });
+      }
+      let f = 0;
+      function step() {
+        let out = "";
+        let done = 0;
+        for (const it of queue) {
+          if (f >= it.end) { done++; out += it.to; }
+          else if (f >= it.start) {
+            if (!it.char || Math.random() < 0.3) it.char = randCh();
+            out += `<span class="dud">${it.char}</span>`;
+          } else {
+            out += "&nbsp;";
+          }
+        }
+        el.innerHTML = out;
+        if (done === queue.length) {
+          el.textContent = next;
+          return;
+        }
+        f++;
+        requestAnimationFrame(step);
+      }
+      step();
+    }
+
+    function revealSidebar() {
+      const sub = document.getElementById('sidebar-sub');
+      if (sub) sub.classList.add('sb-in');
+
+      const navItems = [...document.querySelectorAll('.nav-item')];
+      const STAGGER = 95;
+      navItems.forEach((item, i) => {
+        setTimeout(() => {
+          item.classList.add('sb-in');
+          const label = item.querySelector('.nav-label');
+          if (label) miniScramble(label);
+        }, 120 + i * STAGGER);
+      });
+
+      const cta = document.querySelector('.sidebar-cta');
+      const tailMs = 120 + navItems.length * STAGGER + 240;
+      setTimeout(() => { if (cta) cta.classList.add('sb-in'); }, tailMs);
+
+      // Once the sidebar finishes settling, kick off body reveal.
+      setTimeout(() => {
+        window.dispatchEvent(new Event('page-ready'));
+      }, tailMs + 480);
+    }
+
+    const veil = document.getElementById('cover');
+    const txt = document.getElementById('cover-text');
+    if (!veil || !txt) {
+      document.body.classList.remove('cover-active');
+      revealSidebar();
+      return;
+    }
+
+    const target = "ARCHIVE";
+    const seq = target.split('').map((ch, i) => ({
+      to: ch,
+      start: 80 + i * 70 + Math.floor(Math.random() * 30),
+      end: 720 + i * 70 + Math.floor(Math.random() * 90),
+      char: ''
+    }));
+
+    const startTs = performance.now();
+    const HOLD_MS = 1700;     // total hold before fade-out
+    const FADE_MS = 700;
+
+    function frame() {
+      const elapsed = performance.now() - startTs;
+      let out = '';
+      for (const it of seq) {
+        if (elapsed >= it.end) out += it.to;
+        else if (elapsed >= it.start) {
+          if (!it.char || Math.random() < 0.3) {
+            it.char = SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)];
+          }
+          out += `<span class="dud">${it.char}</span>`;
+        } else {
+          out += ' ';
+        }
+      }
+      txt.innerHTML = out;
+      if (elapsed < HOLD_MS) {
+        requestAnimationFrame(frame);
+      } else {
+        txt.textContent = target;
+        veil.classList.add('fade-out');
+        document.body.classList.remove('cover-active');
+        setTimeout(() => veil.remove(), FADE_MS + 80);
+        // Begin sidebar reveal as the veil starts fading out.
+        setTimeout(revealSidebar, 200);
+      }
+    }
+    requestAnimationFrame(frame);
+  })();
+
+  // ── Apply stat-bar-fill widths from data-w (avoids inline styles in HTML) ──
+  document.querySelectorAll('.stat-bar-fill[data-w]').forEach((el) => {
+    el.style.width = el.dataset.w + '%';
+  });
+
+  // ── Body reveal: bidirectional scramble + rise on scroll ──────
   (function bodyReveal() {
     const SCRAMBLE_CHARS = "!<>-_\\/[]{}=+*^?#________";
     const randCh = () => SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)];
 
-    // Selectors for short text-only elements that should scramble.
-    // Longer paragraphs (.body-text, .tl-desc, .i-desc) only rise — they
-    // contain inline HTML (<strong>, <br>, <em>) that scramble would clobber.
+    // Short text-only elements that re-scramble every entry.
+    // Longer paragraphs (with inline HTML) only rise/fade.
     const SCRAMBLE_SEL = [
       '.section-title', '.section-num',
       '.tl-name', '.tl-year', '.tl-meta',
       '.i-num', '.i-name',
-      '.label',
-      '.q-author', '.q-source',
+      '.label', '.ascii-box-label',
+      '.q-id', '.q-source',
+      '.entry-num', '.entry-title',
+      '.collapse-year', '.collapse-title',
+      '.scenario-title',
       '.stat-label', '.stat-value',
       '.tag', '.note-num',
-      'th', 'h1', 'h2', 'h3', 'h4'
+      '.s-id', '.s-key', '.c-key',
+      'th', 'h2', 'h3', 'h4'
     ].join(',');
 
     const RISE_SEL = [
       '.section-header',
       '.body-text',
-      '.tl-item',
-      '.i-row',
       '.tl-desc', '.i-desc',
-      '.data-table', '.timeline',
-      '.grid-2', '.grid-3',
       '.q-item', '.q-text',
       '.stat-row', '.stat-block',
       '.note', '.ref-item',
+      '.quote-block',
       'figure', 'blockquote', 'p', 'li', 'pre'
     ].join(',');
+
+    // Containers whose children cascade in/out on every scroll past.
+    // Parent stays visible by default; children get .cascade-child class.
+    const CASCADES = [
+      { sel: '.data-table',     childSel: 'thead tr, tbody tr',  stagger: 55 },
+      { sel: '.ascii-box',      childSel: '.collapse-row',       stagger: 55 },
+      { sel: '.grid-2',         childSel: ':scope > *',          stagger: 90 },
+      { sel: '.grid-3',         childSel: ':scope > *',          stagger: 70 },
+      { sel: '.collapse-event', childSel: '.collapse-row',       stagger: 50 },
+      { sel: '.scenario',       childSel: '.scenario-row',       stagger: 60 },
+      { sel: '.timeline',       childSel: '.tl-item',            stagger: 40 },
+      { sel: '.index-map',      childSel: '.i-row',              stagger: 35 }
+    ];
 
     function scramble(el) {
       const next = el.dataset.txt || el.textContent || "";
@@ -1829,8 +2254,11 @@
           char: ""
         });
       }
+      // Per-element run token: lets a fresh scramble cancel any running one.
+      const myRun = (el._scrambleRun = (el._scrambleRun || 0) + 1);
       let frame = 0;
       function step() {
+        if (el._scrambleRun !== myRun) return;
         let out = "";
         let done = 0;
         for (const it of queue) {
@@ -1853,62 +2281,329 @@
       step();
     }
 
-    const scrambleTargets = new Set(document.querySelectorAll(SCRAMBLE_SEL));
-    const riseTargets = new Set(document.querySelectorAll(RISE_SEL));
-    scrambleTargets.forEach((el) => riseTargets.delete(el));
+    const scrambleEls = new Set(document.querySelectorAll(SCRAMBLE_SEL));
+    const riseOnlyEls = new Set(document.querySelectorAll(RISE_SEL));
+    scrambleEls.forEach((el) => riseOnlyEls.delete(el));
 
-    const all = new Set([...riseTargets, ...scrambleTargets]);
+    const all = new Set([...scrambleEls, ...riseOnlyEls]);
     all.forEach((el) => el.classList.add('reveal'));
 
-    function revealEl(el) {
-      if (el._revealed) return;
-      el._revealed = true;
-      el.classList.add('in');
-      if (scrambleTargets.has(el)) {
-        if (!el.dataset.txt) el.dataset.txt = el.textContent;
-        scramble(el);
+    // Cache scramble target text so re-triggers always restore the original.
+    scrambleEls.forEach((el) => {
+      if (!el.dataset.txt) el.dataset.txt = el.textContent;
+    });
+
+    // Collect observe(io, el) pairs; flushed once the page is "ready".
+    const pending = [];
+
+    // Scramble observer: re-fire on every entry; on exit, swap to the
+    // .up class iff exited at top, leaving default (translateY 14px) for
+    // bottom exits — animation direction matches scroll direction.
+    const scrambleIO = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        const el = entry.target;
+        if (entry.isIntersecting) {
+          el.classList.remove('up');
+          el.classList.add('in');
+          scramble(el);
+        } else {
+          el.classList.remove('in');
+          if (entry.boundingClientRect.top < 0) {
+            el.classList.add('up');
+          } else {
+            el.classList.remove('up');
+          }
+        }
+      });
+    }, { threshold: 0, rootMargin: '0px 0px -8% 0px' });
+    scrambleEls.forEach((el) => pending.push([scrambleIO, el]));
+
+    // Rise-only observer: fire once. Body content stays visible after first reveal.
+    const riseIO = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('in');
+        riseIO.unobserve(entry.target);
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -8% 0px' });
+    riseOnlyEls.forEach((el) => pending.push([riseIO, el]));
+
+    // Cascade observer: stagger children of graph/table/box containers.
+    // Re-fires every entry/exit. "도로로록" feel.
+    const containerTimers = new WeakMap();
+    function clearTimers(c) {
+      const timers = containerTimers.get(c);
+      if (timers) timers.forEach(clearTimeout);
+      containerTimers.set(c, []);
+    }
+    function cascadeApply(container, childSel, stagger, mode) {
+      clearTimers(container);
+      const children = [...container.querySelectorAll(childSel)];
+      const timers = [];
+      children.forEach((child, i) => {
+        timers.push(setTimeout(() => {
+          if (mode === 'in') {
+            child.classList.remove('up');
+            child.classList.add('in');
+          } else if (mode === 'up') {
+            child.classList.remove('in');
+            child.classList.add('up');
+          } else {
+            child.classList.remove('in');
+            child.classList.remove('up');
+          }
+        }, i * stagger));
+      });
+      containerTimers.set(container, timers);
+    }
+
+    CASCADES.forEach(({ sel, childSel, stagger }) => {
+      document.querySelectorAll(sel).forEach((container) => {
+        const children = container.querySelectorAll(childSel);
+        children.forEach((c) => c.classList.add('cascade-child'));
+
+        const cascadeIO = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              cascadeApply(container, childSel, stagger, 'in');
+            } else if (entry.boundingClientRect.top < 0) {
+              cascadeApply(container, childSel, stagger, 'up');
+            } else {
+              cascadeApply(container, childSel, stagger, 'down');
+            }
+          });
+        }, { threshold: 0, rootMargin: '0px 0px -6% 0px' });
+        pending.push([cascadeIO, container]);
+      });
+    });
+
+    // ── Stat bar fills: scaleX 0 → 1 on entry ────────────────────
+    const barIO = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) entry.target.classList.add('in');
+        else entry.target.classList.remove('in');
+      });
+    }, { threshold: 0.4, rootMargin: '0px 0px -6% 0px' });
+    document.querySelectorAll('.stat-bar-fill').forEach((el) => pending.push([barIO, el]));
+
+    // ── Dots ratings: pop in box-by-box (띵띵띵) ──────────────────
+    const dotTimers = new WeakMap();
+    function clearDotTimers(container) {
+      const timers = dotTimers.get(container);
+      if (timers) timers.forEach(clearTimeout);
+      dotTimers.set(container, []);
+    }
+    const dotsIO = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        const container = entry.target;
+        clearDotTimers(container);
+        const spans = [...container.querySelectorAll('span')];
+        const timers = [];
+        if (entry.isIntersecting) {
+          spans.forEach((s, i) => {
+            timers.push(setTimeout(() => s.classList.add('in'), i * 70));
+          });
+        } else {
+          spans.forEach((s, i) => {
+            timers.push(setTimeout(() => s.classList.remove('in'), i * 35));
+          });
+        }
+        dotTimers.set(container, timers);
+      });
+    }, { threshold: 0.5, rootMargin: '0px 0px -6% 0px' });
+    document.querySelectorAll('.dots').forEach((el) => pending.push([dotsIO, el]));
+
+    // Flush all pending observations. If the cover is still up, defer until
+    // 'page-ready' (dispatched after the cover + sidebar reveal completes).
+    // Stagger observe() calls by DOM position so initial in-viewport content
+    // reveals top-down (도로록) rather than all at once.
+    function startObserving() {
+      pending.sort((a, b) => {
+        const pos = a[1].compareDocumentPosition(b[1]);
+        if (pos & Node.DOCUMENT_POSITION_FOLLOWING) return -1;
+        if (pos & Node.DOCUMENT_POSITION_PRECEDING) return 1;
+        return 0;
+      });
+      pending.forEach(([io, el], i) => {
+        setTimeout(() => io.observe(el), Math.min(i, 24) * 32);
+      });
+      pending.length = 0;
+    }
+    if (document.body.classList.contains('cover-active') ||
+        document.getElementById('cover')) {
+      window.addEventListener('page-ready', startObserving, { once: true });
+    } else {
+      startObserving();
+    }
+  })();
+
+  // ── Auto-assign data-ref to body paragraphs by section ────────
+  (function autoRefMap() {
+    const sectionRefs = {
+      s02: '001',
+      s03: '008,009',
+      s04: '005,006,007',
+      s05: '010,012,013,014',
+      s06: '015,016,017,018',
+      s07: '019',
+      s08: '010,021',
+      s09: '011,022,020,025'
+    };
+    Object.entries(sectionRefs).forEach(([id, refs]) => {
+      const sec = document.getElementById(id);
+      if (!sec) return;
+      sec.querySelectorAll('.body-text').forEach((el) => {
+        if (!el.hasAttribute('data-ref')) el.setAttribute('data-ref', refs);
+      });
+    });
+
+    // Portrait assignments — drop image files into ./portraits/
+    // Missing files fail silently (onerror hides the <img>).
+    const PORTRAIT_DIR = 'portraits/';
+    const byQid = {
+      'Q-001': { src: 'harari.jpg', label: 'Yuval Noah Harari' },
+      'Q-002': { src: 'simmel.jpg', label: 'Georg Simmel' },
+      'Q-003': { src: 'nixon.jpg', label: 'Richard Nixon' },
+      'Q-004': { src: 'satoshi.jpg', label: 'Satoshi Nakamoto' },
+      'Q-005': { src: 'friedman.jpg', label: 'Milton Friedman' },
+      'Q-006': { src: 'marco-polo.jpg', label: 'Marco Polo' },
+      'Q-009': { src: 'harari.jpg', label: 'Yuval Noah Harari' }
+    };
+    document.querySelectorAll('.q-item').forEach((item) => {
+      const idEl = item.querySelector('.q-id');
+      if (!idEl) return;
+      const qid = idEl.textContent.replace(/[\[\]]/g, '').trim();
+      const p = byQid[qid];
+      if (!p) return;
+      item.setAttribute('data-portrait', PORTRAIT_DIR + p.src);
+      item.setAttribute('data-portrait-label', p.label);
+    });
+
+    const blockMap = [
+      { selector: '.quote-block[data-ref="008"]', src: 'simmel.jpg', label: 'Georg Simmel' },
+      { selector: '.quote-block[data-ref="009"]', src: 'harari.jpg', label: 'Yuval Noah Harari' },
+      { selector: '.quote-block[data-ref="005,006,007"]', src: 'nixon.jpg', label: 'Richard Nixon' }
+    ];
+    blockMap.forEach(({ selector, src, label }) => {
+      document.querySelectorAll(selector).forEach((el) => {
+        el.setAttribute('data-portrait', PORTRAIT_DIR + src);
+        el.setAttribute('data-portrait-label', label);
+      });
+    });
+  })();
+
+  // ── Ref hover tooltip ─────────────────────────────────────────
+  (function refTooltip() {
+    const refs = new Map();
+    document.querySelectorAll('.ref-item').forEach((item) => {
+      const n = item.querySelector('.ref-n');
+      const body = item.querySelector('.ref-body');
+      if (!n || !body) return;
+      refs.set(n.textContent.trim(), body.innerHTML);
+    });
+    if (!refs.size) return;
+
+    const tip = document.createElement('div');
+    tip.className = 'ref-tooltip';
+    document.body.appendChild(tip);
+
+    let hideTimer = null;
+    let activeEl = null;
+
+    function show(el, x, y) {
+      const ids = (el.getAttribute('data-ref') || '').split(',').map((s) => s.trim()).filter(Boolean);
+      const portrait = el.getAttribute('data-portrait');
+      const portraitLabel = el.getAttribute('data-portrait-label');
+      if (!ids.length && !portrait) return;
+
+      let html = '';
+      if (portrait) {
+        const labelHtml = portraitLabel ? `<span class="ref-portrait-label">${portraitLabel}</span>` : '';
+        html += `<span class="ref-portrait-wrap"><img class="ref-portrait" src="${portrait}" alt="" onerror="this.style.display='none'">${labelHtml}</span>`;
+      }
+      html += ids
+        .map((id) => {
+          const body = refs.get(id);
+          return body ? `<span class="ref-row"><span class="ref-n">${id}</span>${body}</span>` : '';
+        })
+        .filter(Boolean)
+        .join('');
+      if (!html) return;
+      tip.innerHTML = html;
+      // Force reflow before measuring so position math uses fresh size
+      tip.style.left = '-9999px';
+      tip.style.top = '-9999px';
+      requestAnimationFrame(() => {
+        position(x, y);
+        tip.classList.add('visible');
+      });
+      activeEl = el;
+    }
+
+    function position(x, y) {
+      const margin = 14;
+      const tw = tip.offsetWidth;
+      const th = tip.offsetHeight;
+      let nx = x + margin;
+      let ny = y + margin;
+      if (nx + tw > window.innerWidth - 8) nx = x - tw - margin;
+      if (ny + th > window.innerHeight - 8) ny = y - th - margin;
+      if (nx < 8) nx = 8;
+      if (ny < 8) ny = 8;
+      tip.style.left = nx + 'px';
+      tip.style.top = ny + 'px';
+    }
+
+    function scheduleHide() {
+      hideTimer = setTimeout(() => {
+        tip.classList.remove('visible');
+        activeEl = null;
+      }, 220);
+    }
+
+    function cancelHide() {
+      if (hideTimer) {
+        clearTimeout(hideTimer);
+        hideTimer = null;
       }
     }
 
-    // Section-level orchestration: header reveals first, then body
-    // content with a delay — "header types in like code, body follows."
-    const HEADER_TO_BODY_DELAY = 700;
-
-    document.querySelectorAll('.section').forEach((section) => {
-      const headerEl = section.querySelector('.section-header');
-      const headerInner = headerEl
-        ? new Set([headerEl, ...headerEl.querySelectorAll('*')].filter((el) => all.has(el)))
-        : new Set();
-      const bodyInner = [...all].filter((el) => section.contains(el) && !headerInner.has(el));
-
-      let triggered = false;
-      const sectionIO = new IntersectionObserver((entries, obs) => {
-        entries.forEach((entry) => {
-          if (!entry.isIntersecting || triggered) return;
-          triggered = true;
-          obs.disconnect();
-
-          headerInner.forEach((el) => revealEl(el));
-          setTimeout(() => {
-            bodyInner.forEach((el) => revealEl(el));
-          }, HEADER_TO_BODY_DELAY);
-        });
-      }, { threshold: 0.05, rootMargin: '0px 0px -10% 0px' });
-      sectionIO.observe(section);
+    document.addEventListener('mouseover', (e) => {
+      const el = e.target.closest('[data-ref]');
+      if (el) {
+        cancelHide();
+        if (el !== activeEl) show(el, e.clientX, e.clientY);
+        return;
+      }
+      if (e.target.closest('.ref-tooltip')) {
+        cancelHide();
+      }
     });
 
-    // Anything outside a .section (defensive fallback) gets per-element observe.
-    const orphans = [...all].filter((el) => !el.closest('.section'));
-    if (orphans.length) {
-      const fallbackIO = new IntersectionObserver((entries) => {
-        entries.forEach((entry) => {
-          if (!entry.isIntersecting) return;
-          revealEl(entry.target);
-          fallbackIO.unobserve(entry.target);
-        });
-      }, { threshold: 0.15, rootMargin: '0px 0px -8% 0px' });
-      orphans.forEach((el) => fallbackIO.observe(el));
-    }
+    document.addEventListener('mouseout', (e) => {
+      const fromRef = e.target.closest('[data-ref]');
+      const fromTip = e.target.closest('.ref-tooltip');
+      if (!fromRef && !fromTip) return;
+      const to = e.relatedTarget;
+      const toRef = to && to.closest && to.closest('[data-ref]');
+      const toTip = to && to.closest && to.closest('.ref-tooltip');
+      if (toRef === fromRef && fromRef) return;
+      if (toTip || toRef) return;
+      scheduleHide();
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!activeEl || !tip.classList.contains('visible')) return;
+      if (e.target.closest('.ref-tooltip')) return;
+      position(e.clientX, e.clientY);
+    });
+
+    window.addEventListener('scroll', () => {
+      if (tip.classList.contains('visible')) {
+        tip.classList.remove('visible');
+        activeEl = null;
+      }
+    }, { passive: true });
   })();
 </script>
 </body>
