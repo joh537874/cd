@@ -742,6 +742,12 @@
       padding-right: 8px;
       margin-bottom: 12px;
     }
+    .finding-viz-row {
+      display: flex;
+      gap: 28px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
     .finding-meta {
       padding-left: 68px;
       font-size: 10px;
@@ -791,6 +797,91 @@
       border-top: 1px dashed var(--line2);
       letter-spacing: 0.04em;
     }
+
+    /* Vertical bar chart (column comparison) */
+    .vbars {
+      display: flex;
+      align-items: flex-end;
+      gap: 40px;
+      padding: 12px 0 0;
+      flex-wrap: wrap;
+    }
+    .vbar { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .vbar-val {
+      font-size: 12px;
+      color: var(--text);
+      letter-spacing: 0.04em;
+      font-weight: 700;
+    }
+    .vbar-track {
+      width: 56px;
+      height: 180px;
+      position: relative;
+      background: rgba(200, 200, 200, 0.08);
+    }
+    .vbar-fill {
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      background: rgba(220, 220, 220, 0.78);
+      transform: scaleY(0);
+      transform-origin: bottom center;
+      transition: transform 1100ms cubic-bezier(.6,.05,.3,1);
+    }
+    .vbar-fill.in { transform: scaleY(1); transition-delay: 220ms; }
+    .vbar-cap {
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--dim);
+    }
+
+    /* Line graph (descending series) */
+    .linegraph {
+      width: 100%;
+      max-width: 520px;
+      height: auto;
+      display: block;
+    }
+    .lg-axis { stroke: rgba(255, 255, 255, 0.15); stroke-width: 0.6; }
+    .lg-grid { stroke: rgba(255, 255, 255, 0.06); stroke-width: 0.4; stroke-dasharray: 2 3; }
+    .lg-line {
+      fill: none;
+      stroke: rgba(232, 232, 232, 0.92);
+      stroke-width: 1.4;
+      stroke-dasharray: 100;
+      stroke-dashoffset: 100;
+      transition: stroke-dashoffset 1500ms cubic-bezier(.6, .05, .3, 1);
+    }
+    .linegraph.in .lg-line { stroke-dashoffset: 0; }
+    .lg-point {
+      fill: var(--bg);
+      stroke: rgba(232, 232, 232, 0.92);
+      stroke-width: 1.4;
+      opacity: 0;
+      transition: opacity 280ms ease;
+    }
+    .linegraph.in .lg-p1 { opacity: 1; transition-delay: 900ms; }
+    .linegraph.in .lg-p2 { opacity: 1; transition-delay: 1100ms; }
+    .linegraph.in .lg-p3 { opacity: 1; transition-delay: 1300ms; }
+    .linegraph.in .lg-p4 { opacity: 1; transition-delay: 1500ms; }
+    .linegraph.in .lg-p5 { opacity: 1; transition-delay: 1700ms; }
+    .lg-label {
+      font-size: 7px;
+      font-family: var(--mono);
+      fill: var(--dim);
+      text-anchor: middle;
+      letter-spacing: 0.12em;
+    }
+    .lg-val {
+      font-size: 8px;
+      font-family: var(--mono);
+      fill: var(--text);
+      text-anchor: middle;
+      font-weight: 700;
+      opacity: 0;
+      transition: opacity 280ms ease;
+    }
+    .linegraph.in .lg-val { opacity: 1; transition-delay: 1700ms; }
 
     /* SVG donut chart */
     .donut-stack { display: flex; flex-direction: column; align-items: center; gap: 6px; }
@@ -1797,13 +1888,17 @@
             MIT 마케팅 연구진이 2001년 진행한 고전적 실험. 참가자들에게 <strong>같은 추수감사절 파티 예산</strong>을 짜게 하면서, 결제 수단만 다르게 줬다 — 한쪽은 카드, 다른 쪽은 현금. 결과는 카드 그룹 평균 <strong>$175</strong>, 현금 그룹 평균 <strong>$145</strong>. 같은 행사·같은 인구 통계임에도 약 <strong>21%의 지출 차이</strong>가 발생했다. 결제 방식이 "얼마를 쓸 수 있는가"에 대한 인식 자체를 바꾼다는 첫 정량 증거였다.
           </p>
           <div class="finding-viz">
-            <div class="stat-row">
-              <span class="stat-label">현금 그룹</span>
-              <div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="83"></div></div><span class="stat-val">$145</span></div>
-            </div>
-            <div class="stat-row">
-              <span class="stat-label">카드 그룹</span>
-              <div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="100"></div></div><span class="stat-val">$175</span></div>
+            <div class="vbars">
+              <div class="vbar">
+                <span class="vbar-val">$145</span>
+                <div class="vbar-track"><div class="vbar-fill" data-h="83"></div></div>
+                <span class="vbar-cap">CASH</span>
+              </div>
+              <div class="vbar">
+                <span class="vbar-val">$175</span>
+                <div class="vbar-track"><div class="vbar-fill" data-h="100"></div></div>
+                <span class="vbar-cap">CARD</span>
+              </div>
             </div>
             <div class="finding-delta">+$30 차이 — 카드 결제 시 평균 지출 <strong>+20.7%</strong></div>
           </div>
@@ -1819,13 +1914,25 @@
             실제 슈퍼마켓 영수증 수만 건을 분석한 연구. <strong>같은 매장, 같은 가격, 다른 결제 수단</strong>이라는 단 하나의 변수로 장바구니 구성을 비교했다. 신용카드 결제 영수증에는 아이스크림·사탕·감자칩 같은 <em>충동 구매 품목</em>이 유의미하게 많았고, 현금 결제 장바구니에선 채소·과일 같은 건강 식품의 비율이 더 높았다. 결제의 마찰이 적을수록 절제도 함께 사라진다.
           </p>
           <div class="finding-viz">
-            <div class="stat-row">
-              <span class="stat-label">현금 결제</span>
-              <div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="68"></div></div><span class="stat-val">건강 식품 68%</span></div>
-            </div>
-            <div class="stat-row">
-              <span class="stat-label">카드 결제</span>
-              <div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="44"></div></div><span class="stat-val">건강 식품 44%</span></div>
+            <div class="finding-viz-row">
+              <div class="donut-stack">
+                <svg class="donut" viewBox="0 0 36 36">
+                  <circle class="donut-bg" cx="18" cy="18" r="15.9"/>
+                  <circle class="donut-seg" cx="18" cy="18" r="15.9" data-p="68"/>
+                  <text x="18" y="17.5" class="donut-label">68%</text>
+                  <text x="18" y="22.4" class="donut-sub">HEALTHY</text>
+                </svg>
+                <div class="donut-cap">CASH</div>
+              </div>
+              <div class="donut-stack">
+                <svg class="donut" viewBox="0 0 36 36">
+                  <circle class="donut-bg" cx="18" cy="18" r="15.9"/>
+                  <circle class="donut-seg" cx="18" cy="18" r="15.9" data-p="44"/>
+                  <text x="18" y="17.5" class="donut-label">44%</text>
+                  <text x="18" y="22.4" class="donut-sub">HEALTHY</text>
+                </svg>
+                <div class="donut-cap">CARD</div>
+              </div>
             </div>
             <div class="finding-delta">−24 %p — 카드 사용자가 더 충동적</div>
           </div>
@@ -1841,22 +1948,26 @@
             뇌 영상 연구는 <strong>"결제의 고통(pain of paying)"이 은유가 아님</strong>을 보여줬다. 현금을 지불할 때 뇌의 <em>섬엽(insula)</em> — 신체적 통증을 처리하는 바로 그 회로 — 이 가장 강하게 활성화됐다. 체크카드에서는 절반, 신용카드에서는 1/3, 모바일 페이에서는 1/4 수준까지 떨어졌다. 디지털 결제는 "돈이 빠져나간다"는 신경학적 자각 자체를 무뎌지게 만든다.
           </p>
           <div class="finding-viz">
-            <div class="stat-row">
-              <span class="stat-label">현금</span>
-              <div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="100"></div></div><span class="stat-val">100% (기준)</span></div>
-            </div>
-            <div class="stat-row">
-              <span class="stat-label">체크카드</span>
-              <div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="55"></div></div><span class="stat-val">55%</span></div>
-            </div>
-            <div class="stat-row">
-              <span class="stat-label">신용카드</span>
-              <div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="38"></div></div><span class="stat-val">38%</span></div>
-            </div>
-            <div class="stat-row">
-              <span class="stat-label">모바일 페이</span>
-              <div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="22"></div></div><span class="stat-val">22%</span></div>
-            </div>
+            <svg class="linegraph" viewBox="0 0 360 150" preserveAspectRatio="xMidYMid meet">
+              <line x1="20" y1="120" x2="340" y2="120" class="lg-axis"/>
+              <line x1="60"  y1="20" x2="60"  y2="120" class="lg-grid"/>
+              <line x1="150" y1="20" x2="150" y2="120" class="lg-grid"/>
+              <line x1="240" y1="20" x2="240" y2="120" class="lg-grid"/>
+              <line x1="330" y1="20" x2="330" y2="120" class="lg-grid"/>
+              <polyline class="lg-line" pathLength="100" points="60,30 150,75 240,90 330,103"/>
+              <circle class="lg-point lg-p1" cx="60"  cy="30"  r="3.5"/>
+              <circle class="lg-point lg-p2" cx="150" cy="75"  r="3.5"/>
+              <circle class="lg-point lg-p3" cx="240" cy="90"  r="3.5"/>
+              <circle class="lg-point lg-p4" cx="330" cy="103" r="3.5"/>
+              <text x="60"  y="18" class="lg-val">100%</text>
+              <text x="150" y="63" class="lg-val">55%</text>
+              <text x="240" y="78" class="lg-val">38%</text>
+              <text x="330" y="91" class="lg-val">22%</text>
+              <text x="60"  y="138" class="lg-label">CASH</text>
+              <text x="150" y="138" class="lg-label">CHECK</text>
+              <text x="240" y="138" class="lg-label">CREDIT</text>
+              <text x="330" y="138" class="lg-label">MOBILE</text>
+            </svg>
             <div class="finding-delta">현금 ↔ 모바일 페이 — 섬엽 활성도 <strong>4.5배 차이</strong></div>
           </div>
           <div class="finding-meta">Madzharov et al., 2019 — Frontiers in Neuroscience</div>
@@ -1871,25 +1982,19 @@
             유럽중앙은행이 매년 진행하는 결제 행태 조사. 2024년 유로존 <strong>5만 명</strong> 응답자 중 <strong>67%</strong>가 "현금 결제는 사라지지 말아야 한다"고 답했다. 디지털 결제 비중이 80%를 넘은 시대임에도 다수가 현금 유지를 원하는 이유는 — 익명성·프라이버시(41%), 지출 자각 제고(35%), 즉시 결제 완료(30%), 더 많은 곳에서 수락(28%) 순이었다. 위 R-003에서 본 신경학적 효과를 사람들이 본능적으로 알고 있다는 신호.
           </p>
           <div class="finding-viz">
-            <div class="stat-row">
-              <span class="stat-label">현금 유지 지지</span>
-              <div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="67"></div></div><span class="stat-val">67%</span></div>
-            </div>
-            <div class="stat-row">
-              <span class="stat-label">익명성·프라이버시</span>
-              <div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="41"></div></div><span class="stat-val">41%</span></div>
-            </div>
-            <div class="stat-row">
-              <span class="stat-label">지출 자각 제고</span>
-              <div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="35"></div></div><span class="stat-val">35%</span></div>
-            </div>
-            <div class="stat-row">
-              <span class="stat-label">즉시 결제 완료</span>
-              <div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="30"></div></div><span class="stat-val">30%</span></div>
-            </div>
-            <div class="stat-row">
-              <span class="stat-label">더 많은 곳 수락</span>
-              <div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="28"></div></div><span class="stat-val">28%</span></div>
+            <div class="finding-viz-row">
+              <svg class="donut donut-lg" viewBox="0 0 36 36">
+                <circle class="donut-bg" cx="18" cy="18" r="15.9"/>
+                <circle class="donut-seg" cx="18" cy="18" r="15.9" data-p="67"/>
+                <text x="18" y="17" class="donut-label">67%</text>
+                <text x="18" y="22.4" class="donut-sub">WANT TO KEEP</text>
+              </svg>
+              <div class="reasons">
+                <div class="reason-row"><span class="reason-label">PRIVACY</span><div class="reason-track"><div class="reason-fill" data-w="41"></div></div><span class="reason-val">41%</span></div>
+                <div class="reason-row"><span class="reason-label">AWARENESS</span><div class="reason-track"><div class="reason-fill" data-w="35"></div></div><span class="reason-val">35%</span></div>
+                <div class="reason-row"><span class="reason-label">INSTANT</span><div class="reason-track"><div class="reason-fill" data-w="30"></div></div><span class="reason-val">30%</span></div>
+                <div class="reason-row"><span class="reason-label">ACCEPTED</span><div class="reason-track"><div class="reason-fill" data-w="28"></div></div><span class="reason-val">28%</span></div>
+              </div>
             </div>
           </div>
           <div class="finding-meta">European Central Bank — SPACE Report 2024</div>
@@ -2157,10 +2262,26 @@
       </p>
 
       <div class="label mb-14">08-A &nbsp; Global Cash Share in POS Transactions</div>
-      <div class="stat-row"><span class="stat-label">2014</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="44"></div></div><span class="stat-val">44% Cash</span></div></div>
-      <div class="stat-row"><span class="stat-label">2018</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="30"></div></div><span class="stat-val">30% Cash</span></div></div>
-      <div class="stat-row"><span class="stat-label">2021</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="20"></div></div><span class="stat-val">20% Cash</span></div></div>
-      <div class="stat-row mb-28"><span class="stat-label">2024</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="15"></div></div><span class="stat-val">15% Cash</span></div></div>
+      <svg class="linegraph mb-28" viewBox="0 0 360 150" preserveAspectRatio="xMidYMid meet">
+        <line x1="20" y1="120" x2="340" y2="120" class="lg-axis"/>
+        <line x1="60"  y1="20" x2="60"  y2="120" class="lg-grid"/>
+        <line x1="150" y1="20" x2="150" y2="120" class="lg-grid"/>
+        <line x1="240" y1="20" x2="240" y2="120" class="lg-grid"/>
+        <line x1="330" y1="20" x2="330" y2="120" class="lg-grid"/>
+        <polyline class="lg-line" pathLength="100" points="60,30 150,66 240,92 330,105"/>
+        <circle class="lg-point lg-p1" cx="60"  cy="30"  r="3.5"/>
+        <circle class="lg-point lg-p2" cx="150" cy="66"  r="3.5"/>
+        <circle class="lg-point lg-p3" cx="240" cy="92"  r="3.5"/>
+        <circle class="lg-point lg-p4" cx="330" cy="105" r="3.5"/>
+        <text x="60"  y="18"  class="lg-val">44%</text>
+        <text x="150" y="54"  class="lg-val">30%</text>
+        <text x="240" y="80"  class="lg-val">20%</text>
+        <text x="330" y="93"  class="lg-val">15%</text>
+        <text x="60"  y="138" class="lg-label">2014</text>
+        <text x="150" y="138" class="lg-label">2018</text>
+        <text x="240" y="138" class="lg-label">2021</text>
+        <text x="330" y="138" class="lg-label">2024</text>
+      </svg>
 
       <div class="label mb-14">08-B &nbsp; Digital Payment Market Size</div>
       <div class="stat-row"><span class="stat-label">2014</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="9"></div></div><span class="stat-val">$1.7 Trillion</span></div></div>
@@ -2171,10 +2292,26 @@
       <div class="stat-row mb-28"><span class="stat-label">2026 (예상)</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="100"></div></div><span class="stat-val">5.0 Billion</span></div></div>
 
       <div class="label mb-14">08-D &nbsp; US M2 Money Supply (Federal Reserve)</div>
-      <div class="stat-row"><span class="stat-label">2005</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="30"></div></div><span class="stat-val">$6.5T</span></div></div>
-      <div class="stat-row"><span class="stat-label">2008 (QE1 시작)</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="38"></div></div><span class="stat-val">$8.0T</span></div></div>
-      <div class="stat-row"><span class="stat-label">2020 (COVID 피크)</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="42"></div></div><span class="stat-val">$8.9T (Fed 자산)</span></div></div>
-      <div class="stat-row mb-28"><span class="stat-label">2024</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="100"></div></div><span class="stat-val">$21.3T (M2)</span></div></div>
+      <svg class="linegraph mb-28" viewBox="0 0 360 150" preserveAspectRatio="xMidYMid meet">
+        <line x1="20" y1="120" x2="340" y2="120" class="lg-axis"/>
+        <line x1="60"  y1="20" x2="60"  y2="120" class="lg-grid"/>
+        <line x1="150" y1="20" x2="150" y2="120" class="lg-grid"/>
+        <line x1="240" y1="20" x2="240" y2="120" class="lg-grid"/>
+        <line x1="330" y1="20" x2="330" y2="120" class="lg-grid"/>
+        <polyline class="lg-line" pathLength="100" points="60,105 150,97 240,93 330,30"/>
+        <circle class="lg-point lg-p1" cx="60"  cy="105" r="3.5"/>
+        <circle class="lg-point lg-p2" cx="150" cy="97"  r="3.5"/>
+        <circle class="lg-point lg-p3" cx="240" cy="93"  r="3.5"/>
+        <circle class="lg-point lg-p4" cx="330" cy="30"  r="3.5"/>
+        <text x="60"  y="93"  class="lg-val">$6.5T</text>
+        <text x="150" y="85"  class="lg-val">$8.0T</text>
+        <text x="240" y="81"  class="lg-val">$8.9T</text>
+        <text x="330" y="18"  class="lg-val">$21.3T</text>
+        <text x="60"  y="138" class="lg-label">2005</text>
+        <text x="150" y="138" class="lg-label">2008</text>
+        <text x="240" y="138" class="lg-label">2020</text>
+        <text x="330" y="138" class="lg-label">2024</text>
+      </svg>
 
       <div class="label mb-14">08-E &nbsp; Unbanked Population</div>
       <div class="stat-row"><span class="stat-label">전 세계 성인</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="17"></div></div><span class="stat-val">17% (약 14억 명)</span></div></div>
@@ -2258,12 +2395,14 @@
       <p class="body-text" data-ref="011">
         134개국이 CBDC를 연구 중이며 6개국이 이미 출시했다(2024). 2030년까지 주요 통화권의 CBDC 도입 가능성을 분석가들의 컨센서스로 추정한 결과:
       </p>
-      <div class="stat-row"><span class="stat-label">중국 e-CNY (이미 운영)</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="96"></div></div><span class="stat-val">96%</span></div></div>
-      <div class="stat-row"><span class="stat-label">유럽 디지털 유로</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="78"></div></div><span class="stat-val">78%</span></div></div>
-      <div class="stat-row"><span class="stat-label">한국 한국CBDC</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="62"></div></div><span class="stat-val">62%</span></div></div>
-      <div class="stat-row"><span class="stat-label">영국 디지털 파운드</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="54"></div></div><span class="stat-val">54%</span></div></div>
-      <div class="stat-row"><span class="stat-label">일본 디지털 엔</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="46"></div></div><span class="stat-val">46%</span></div></div>
-      <div class="stat-row"><span class="stat-label">미연준 디지털 달러</span><div class="stat-bar-wrap"><div class="stat-bar"><div class="stat-bar-fill" data-w="34"></div></div><span class="stat-val">34%</span></div></div>
+      <div class="vbars" data-ref="011">
+        <div class="vbar"><span class="vbar-val">96%</span><div class="vbar-track"><div class="vbar-fill" data-h="96"></div></div><span class="vbar-cap">CHN</span></div>
+        <div class="vbar"><span class="vbar-val">78%</span><div class="vbar-track"><div class="vbar-fill" data-h="78"></div></div><span class="vbar-cap">EUR</span></div>
+        <div class="vbar"><span class="vbar-val">62%</span><div class="vbar-track"><div class="vbar-fill" data-h="62"></div></div><span class="vbar-cap">KOR</span></div>
+        <div class="vbar"><span class="vbar-val">54%</span><div class="vbar-track"><div class="vbar-fill" data-h="54"></div></div><span class="vbar-cap">GBR</span></div>
+        <div class="vbar"><span class="vbar-val">46%</span><div class="vbar-track"><div class="vbar-fill" data-h="46"></div></div><span class="vbar-cap">JPN</span></div>
+        <div class="vbar"><span class="vbar-val">34%</span><div class="vbar-track"><div class="vbar-fill" data-h="34"></div></div><span class="vbar-cap">USA</span></div>
+      </div>
       <div class="entry-meta mt-10">출처 합성 — Atlantic Council CBDC Tracker 2024, BIS Working Paper 2024-880, Yale 정책 분석</div>
 
       <div class="rule"></div>
@@ -2594,6 +2733,9 @@
   document.querySelectorAll('.cb-fill[data-w], .reason-fill[data-w]').forEach((el) => {
     el.style.setProperty('--w', el.dataset.w + '%');
   });
+  document.querySelectorAll('.vbar-fill[data-h]').forEach((el) => {
+    el.style.height = el.dataset.h + '%';
+  });
   document.querySelectorAll('.donut-seg[data-p]').forEach((el) => {
     el.style.setProperty('--p', el.dataset.p);
   });
@@ -2791,7 +2933,7 @@
         else entry.target.classList.remove('in');
       });
     }, { threshold: 0.4, rootMargin: '0px 0px -6% 0px' });
-    document.querySelectorAll('.stat-bar-fill, .cb-fill, .reason-fill, .donut').forEach((el) => pending.push([barIO, el]));
+    document.querySelectorAll('.stat-bar-fill, .cb-fill, .reason-fill, .donut, .vbar-fill, .linegraph').forEach((el) => pending.push([barIO, el]));
 
     // ── Dots ratings: pop in box-by-box (띵띵띵) ──────────────────
     const dotTimers = new WeakMap();

@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>HOW IS IT MONEY — Caption</title>
+<style>
+  /* ─────────────────────────────────────────────
+     인쇄 사양
+     - 카드 1장: A6 (105 × 148 mm) 세로
+     - A4 한 장에 4면(앞면 2 + 뒷면 2)을 배치 → 잘라서 카드 2장
+     - 양면 인쇄 시: 카드 8장(앞4 + 뒷4) 가능 — 아래는 단면 가이드,
+       양면 인쇄용은 .sheet.back 시트를 같이 출력
+     ───────────────────────────────────────────── */
+  @page { size: A4; margin: 0; }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: #888;
+    font-family: "Courier New", "IBM Plex Mono", Courier, monospace;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .sheet {
+    width: 210mm;
+    height: 297mm;
+    background: #fff;
+    margin: 12mm auto;
+    display: grid;
+    grid-template-columns: 105mm 105mm;
+    grid-template-rows: 148mm 148mm;
+    page-break-after: always;
+  }
+
+  .card {
+    width: 105mm;
+    height: 148mm;
+    padding: 12mm 11mm;
+    position: relative;
+    overflow: hidden;
+    border: 0.2mm dashed rgba(0,0,0,0.18); /* 재단선 가이드 */
+  }
+
+  /* ── FRONT ─────────────────────────────── */
+  .card.front {
+    background: #0b0b0b;
+    color: rgba(245,245,245,0.96);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .front .top-meta {
+    font-size: 7pt;
+    letter-spacing: 0.14em;
+    color: rgba(200,200,200,0.55);
+    text-transform: uppercase;
+  }
+
+  .front .title-block {
+    margin-top: auto;
+    margin-bottom: 6mm;
+  }
+  .front .title {
+    font-size: 22pt;
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: 0.01em;
+  }
+  .front .subtitle {
+    margin-top: 4mm;
+    font-size: 8pt;
+    letter-spacing: 0.06em;
+    color: rgba(200,200,200,0.65);
+    line-height: 1.6;
+  }
+
+  .front .qr-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 4mm;
+  }
+  .front .qr-box {
+    width: 28mm; height: 28mm;
+    background: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 6pt; color: #000;
+  }
+  .front .qr-caption {
+    font-size: 7pt;
+    letter-spacing: 0.08em;
+    line-height: 1.5;
+    color: rgba(200,200,200,0.72);
+    text-align: right;
+    text-transform: uppercase;
+  }
+
+  /* ── BACK ──────────────────────────────── */
+  .card.back {
+    background: #fff;
+    color: #0b0b0b;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .back .section-num {
+    font-size: 7pt;
+    letter-spacing: 0.18em;
+    color: rgba(0,0,0,0.45);
+    text-transform: uppercase;
+    margin-bottom: 6mm;
+    border-bottom: 0.3mm solid rgba(0,0,0,0.2);
+    padding-bottom: 2mm;
+  }
+
+  .back .work-title {
+    font-size: 14pt;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    line-height: 1.15;
+    margin-bottom: 1mm;
+  }
+
+  .back .credit {
+    font-size: 8pt;
+    color: rgba(0,0,0,0.7);
+    letter-spacing: 0.04em;
+    margin-bottom: 4mm;
+  }
+
+  .back .specs {
+    font-size: 7.5pt;
+    line-height: 1.7;
+    color: rgba(0,0,0,0.78);
+    border-top: 0.2mm solid rgba(0,0,0,0.2);
+    border-bottom: 0.2mm solid rgba(0,0,0,0.2);
+    padding: 2mm 0;
+    margin-bottom: 4mm;
+  }
+  .back .spec-row { display: flex; gap: 4mm; }
+  .back .spec-key {
+    width: 18mm;
+    color: rgba(0,0,0,0.45);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 6.5pt;
+  }
+  .back .spec-val { flex: 1; }
+
+  .back .desc {
+    font-size: 8pt;
+    line-height: 1.65;
+    color: rgba(0,0,0,0.86);
+    margin-bottom: 3mm;
+  }
+  .back .desc strong { font-weight: 700; }
+
+  .back .thesis {
+    font-size: 8.5pt;
+    font-weight: 700;
+    line-height: 1.45;
+    padding: 3mm 0;
+    border-top: 0.2mm solid rgba(0,0,0,0.2);
+    border-bottom: 0.2mm solid rgba(0,0,0,0.2);
+    margin-bottom: 3mm;
+    text-align: center;
+  }
+
+  .back .self-ref {
+    font-size: 7pt;
+    line-height: 1.6;
+    color: rgba(0,0,0,0.55);
+    font-style: italic;
+    margin-top: auto;
+  }
+
+  /* ─────────── 화면 미리보기 ─────────── */
+  @media screen {
+    body { padding: 16px 0; }
+    .sheet { box-shadow: 0 4px 24px rgba(0,0,0,0.18); }
+  }
+
+  /* ─────────── 인쇄 ─────────── */
+  @media print {
+    html, body { background: #fff; }
+    .sheet { margin: 0; box-shadow: none; }
+    .card { border: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════
+     SHEET 1 — 앞면 2장 (A4 한 장에 카드 2장)
+     ════════════════════════════════════════ -->
+<div class="sheet">
+
+  <!-- FRONT × 2 -->
+  <div class="card front">
+    <div class="top-meta">CAPTION / TAKE ONE</div>
+
+    <div class="title-block">
+      <div class="title">HOW<br>IS IT<br>MONEY</div>
+      <div class="subtitle">
+        조개 → 금속 → 지폐 → 데이터<br>
+        무엇이 이것을 가치 있게 만드는가?
+      </div>
+    </div>
+
+    <div class="qr-row">
+      <div class="qr-box">[ QR ]</div>
+      <div class="qr-caption">
+        SCAN<br>TO ENTER<br>THE WORK →
+      </div>
+    </div>
+  </div>
+
+  <div class="card front">
+    <div class="top-meta">CAPTION / TAKE ONE</div>
+
+    <div class="title-block">
+      <div class="title">HOW<br>IS IT<br>MONEY</div>
+      <div class="subtitle">
+        조개 → 금속 → 지폐 → 데이터<br>
+        무엇이 이것을 가치 있게 만드는가?
+      </div>
+    </div>
+
+    <div class="qr-row">
+      <div class="qr-box">[ QR ]</div>
+      <div class="qr-caption">
+        SCAN<br>TO ENTER<br>THE WORK →
+      </div>
+    </div>
+  </div>
+
+  <!-- BACK × 2 (양면 인쇄 시 정확히 뒷면에 위치) -->
+  <div class="card back">
+    <div class="section-num">00 / CAPTION</div>
+
+    <div class="work-title">HOW IS IT MONEY</div>
+    <div class="credit">[본인 이름], 2026</div>
+
+    <div class="specs">
+      <div class="spec-row">
+        <div class="spec-key">매체</div>
+        <div class="spec-val">웹사이트 (HTML, CSS, JavaScript), 인터랙티브</div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-key">크기</div>
+        <div class="spec-val">가변크기 (1920×1080 해상도 최적화)</div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-key">연도</div>
+        <div class="spec-val">2026</div>
+      </div>
+    </div>
+
+    <div class="desc">
+      조개에서 비트코인까지, 돈은 점점 손에서 멀어졌다.
+      이 작업은 BCE 9000년 물물교환부터 2024년 CBDC까지
+      화폐가 어떻게 <strong>물질에서 신뢰의 시스템으로</strong>
+      이행했는지를 11개 섹션으로 추적한 리서치 아카이브이며,
+      연결된 인터랙티브 페이지에서 그 탈물질화 과정을
+      직접 조작해볼 수 있다.
+    </div>
+
+    <div class="thesis">
+      "가치가 클수록 물성은 약해진다."
+    </div>
+
+    <div class="self-ref">
+      가장 비싼 거래는 어떤 물질도 거치지 않는다.<br>
+      지금 손에 든 이 종이 카드도, 곧 사라질 형식이다.
+    </div>
+  </div>
+
+  <div class="card back">
+    <div class="section-num">00 / CAPTION</div>
+
+    <div class="work-title">HOW IS IT MONEY</div>
+    <div class="credit">[본인 이름], 2026</div>
+
+    <div class="specs">
+      <div class="spec-row">
+        <div class="spec-key">매체</div>
+        <div class="spec-val">웹사이트 (HTML, CSS, JavaScript), 인터랙티브</div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-key">크기</div>
+        <div class="spec-val">가변크기 (1920×1080 해상도 최적화)</div>
+      </div>
+      <div class="spec-row">
+        <div class="spec-key">연도</div>
+        <div class="spec-val">2026</div>
+      </div>
+    </div>
+
+    <div class="desc">
+      조개에서 비트코인까지, 돈은 점점 손에서 멀어졌다.
+      이 작업은 BCE 9000년 물물교환부터 2024년 CBDC까지
+      화폐가 어떻게 <strong>물질에서 신뢰의 시스템으로</strong>
+      이행했는지를 11개 섹션으로 추적한 리서치 아카이브이며,
+      연결된 인터랙티브 페이지에서 그 탈물질화 과정을
+      직접 조작해볼 수 있다.
+    </div>
+
+    <div class="thesis">
+      "가치가 클수록 물성은 약해진다."
+    </div>
+
+    <div class="self-ref">
+      가장 비싼 거래는 어떤 물질도 거치지 않는다.<br>
+      지금 손에 든 이 종이 카드도, 곧 사라질 형식이다.
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
