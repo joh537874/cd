@@ -399,29 +399,7 @@
       letter-spacing: 0.04em;
     }
 
-    /* ── ENTRY CARD ── */
-    .entry {
-      display: grid;
-      grid-template-columns: 52px 1fr;
-      gap: 0 16px;
-      padding: 16px 0;
-      border-bottom: 1px solid var(--line2);
-    }
-    .entry:last-child { border-bottom: none; }
-    .entry-num {
-      font-size: 10px;
-      color: var(--dim);
-      letter-spacing: 0.08em;
-      padding-top: 2px;
-    }
-    .entry-title {
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--text);
-      margin-bottom: 4px;
-    }
+    /* ── ENTRY (only entry-body / entry-meta retained; container/num/title/tag are unused) ── */
     .entry-body {
       font-size: 11px;
       color: var(--muted);
@@ -432,17 +410,6 @@
       color: var(--dim);
       margin-top: 6px;
       letter-spacing: 0.06em;
-    }
-    .entry-tag {
-      display: inline-block;
-      font-size: 10px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--dim);
-      border: 1px solid var(--line);
-      padding: 1px 6px;
-      margin-top: 6px;
-      margin-right: 4px;
     }
 
     /* ── SCENARIO CARD ── */
@@ -765,37 +732,6 @@
     @media (max-width: 760px) {
       .finding-card header { grid-template-columns: 1fr; gap: 4px; }
       .finding-desc, .finding-viz, .finding-meta { padding-left: 0; }
-    }
-
-    /* Comparison bars used inside finding-viz */
-    .comp-bars { display: flex; flex-direction: column; gap: 7px; }
-    .cb-row {
-      display: grid;
-      grid-template-columns: 60px 1fr 56px;
-      gap: 10px;
-      align-items: center;
-      font-size: 10px;
-    }
-    .cb-label { color: var(--dim); text-transform: uppercase; font-size: 9px; letter-spacing: 0.08em; }
-    .cb-track { height: 5px; background: rgba(200,200,200,0.12); position: relative; }
-    .cb-fill {
-      position: absolute;
-      left: 0; top: 0; bottom: 0;
-      background: rgba(220,220,220,0.78);
-      width: var(--w, 0%);
-      transform: scaleX(0);
-      transform-origin: left center;
-      transition: transform 1000ms cubic-bezier(.6,.05,.3,1);
-    }
-    .cb-fill.in { transform: scaleX(1); transition-delay: 220ms; }
-    .cb-val { color: var(--text); text-align: right; font-size: 10px; letter-spacing: 0.04em; }
-    .cb-delta {
-      font-size: 9px;
-      color: var(--dim);
-      margin-top: 6px;
-      padding-top: 6px;
-      border-top: 1px dashed var(--line2);
-      letter-spacing: 0.04em;
     }
 
     /* Sparkline lollipop bars (CBDC ranking) */
@@ -2826,7 +2762,7 @@
   document.querySelectorAll('.stat-bar-fill[data-w]').forEach((el) => {
     el.style.width = el.dataset.w + '%';
   });
-  document.querySelectorAll('.cb-fill[data-w], .reason-fill[data-w]').forEach((el) => {
+  document.querySelectorAll('.reason-fill[data-w]').forEach((el) => {
     el.style.setProperty('--w', el.dataset.w + '%');
   });
   document.querySelectorAll('.vbar-fill[data-h]').forEach((el) => {
@@ -2855,7 +2791,6 @@
       '.i-num', '.i-name',
       '.label', '.ascii-box-label',
       '.q-id', '.q-source',
-      '.entry-num', '.entry-title',
       '.collapse-year', '.collapse-title',
       '.scenario-title',
       '.stat-label', '.stat-value',
@@ -3008,22 +2943,26 @@
       containerTimers.set(container, timers);
     }
 
+    // One shared observer for all cascade containers, dispatched via lookup map.
+    const cascadeMap = new WeakMap();
     CASCADES.forEach(({ sel, childSel, stagger }) => {
       document.querySelectorAll(sel).forEach((container) => {
-        const children = container.querySelectorAll(childSel);
-        children.forEach((c) => c.classList.add('cascade-child'));
-
-        const cascadeIO = new IntersectionObserver((entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              cascadeApply(container, childSel, stagger, 'in');
-            } else if (entry.boundingClientRect.top < 0) {
-              cascadeApply(container, childSel, stagger, 'up');
-            } else {
-              cascadeApply(container, childSel, stagger, 'down');
-            }
-          });
-        }, { threshold: 0, rootMargin: '0px 0px -6% 0px' });
+        container.querySelectorAll(childSel).forEach((c) => c.classList.add('cascade-child'));
+        cascadeMap.set(container, { childSel, stagger });
+      });
+    });
+    const cascadeIO = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        const cfg = cascadeMap.get(entry.target);
+        if (!cfg) return;
+        const mode = entry.isIntersecting
+          ? 'in'
+          : (entry.boundingClientRect.top < 0 ? 'up' : 'down');
+        cascadeApply(entry.target, cfg.childSel, cfg.stagger, mode);
+      });
+    }, { threshold: 0, rootMargin: '0px 0px -6% 0px' });
+    CASCADES.forEach(({ sel }) => {
+      document.querySelectorAll(sel).forEach((container) => {
         pending.push([cascadeIO, container]);
       });
     });
@@ -3035,7 +2974,7 @@
         else entry.target.classList.remove('in');
       });
     }, { threshold: 0.4, rootMargin: '0px 0px -6% 0px' });
-    document.querySelectorAll('.stat-bar-fill, .cb-fill, .reason-fill, .donut, .vbar-fill, .linegraph, .spark-fill').forEach((el) => pending.push([barIO, el]));
+    document.querySelectorAll('.stat-bar-fill, .reason-fill, .donut, .vbar-fill, .linegraph, .spark-fill').forEach((el) => pending.push([barIO, el]));
 
     // ── Dots ratings: pop in box-by-box (띵띵띵) ──────────────────
     const dotTimers = new WeakMap();
@@ -3243,10 +3182,17 @@
       scheduleHide();
     });
 
+    let moveRaf = 0, moveX = 0, moveY = 0;
     document.addEventListener('mousemove', (e) => {
       if (!activeEl || !tip.classList.contains('visible')) return;
       if (e.target.closest('.ref-tooltip')) return;
-      position(e.clientX, e.clientY);
+      moveX = e.clientX;
+      moveY = e.clientY;
+      if (moveRaf) return;
+      moveRaf = requestAnimationFrame(() => {
+        moveRaf = 0;
+        position(moveX, moveY);
+      });
     });
 
     window.addEventListener('scroll', () => {
