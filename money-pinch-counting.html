@@ -219,27 +219,6 @@
       offset: { x: 0, y: 0 }
     };
 
-    function createMoneySvg(label, base, accent, detail) {
-      const svg = `
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 200">
-          <defs>
-            <linearGradient id="bill" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="${base}"/>
-              <stop offset="100%" stop-color="${accent}"/>
-            </linearGradient>
-          </defs>
-          <rect x="10" y="10" width="340" height="180" rx="18" fill="url(#bill)" stroke="${detail}" stroke-width="8"/>
-          <rect x="34" y="30" width="292" height="140" rx="12" fill="none" stroke="${detail}" stroke-width="4" opacity="0.75"/>
-          <circle cx="92" cy="100" r="32" fill="none" stroke="${detail}" stroke-width="6" opacity="0.75"/>
-          <circle cx="268" cy="100" r="32" fill="none" stroke="${detail}" stroke-width="6" opacity="0.75"/>
-          <text x="180" y="115" text-anchor="middle" font-family="Arial, sans-serif" font-size="60" fill="${detail}" opacity="0.92">${label}</text>
-          <text x="180" y="62" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" fill="${detail}" opacity="0.82">STANDARD CURRENCY</text>
-          <text x="180" y="158" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="${detail}" opacity="0.7">TEMP NOTE</text>
-        </svg>
-      `.trim();
-      return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
-    }
-
     function createCoinSvg(label, outer, inner, detail) {
       const svg = `
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 220">
@@ -282,9 +261,9 @@
 
     function createMoneyBodies() {
       const assets = [
-        { img: loadImage(createMoneySvg("10", "#6ba17e", "#8ec3a0", "#173d28")), type: "note", w: 236, h: 132, value: "10원" },
-        { img: loadImage(createMoneySvg("50", "#91785b", "#ceb189", "#302113")), type: "note", w: 236, h: 132, value: "50원" },
-        { img: loadImage(createMoneySvg("100", "#6a86a8", "#98b8dd", "#17283b")), type: "note", w: 236, h: 132, value: "100원" },
+        { img: loadImage("bill-1.webp"), type: "note", w: 240, h: 120, value: "1,000원" },
+        { img: loadImage("bill-2.webp"), type: "note", w: 240, h: 120, value: "10,000원" },
+        { img: loadImage("bill-3.webp"), type: "note", w: 240, h: 120, value: "50,000원" },
         { img: loadImage(createCoinSvg("1", "#c6b37e", "#efe0b4", "#5b4724")), type: "coin", w: 144, h: 144, value: "1원" },
         { img: loadImage(createCoinSvg("5", "#b4bac2", "#e5e9ef", "#4a525c")), type: "coin", w: 144, h: 144, value: "5원" }
       ];
@@ -351,27 +330,11 @@
     function drawCountZone() {
       pulseStrength *= 0.92;
       sceneCtx.save();
-      sceneCtx.fillStyle = "rgba(0, 0, 0, 0.18)";
-      sceneCtx.fillRect(countZone.x, countZone.y, countZone.w, countZone.h);
-
       const g = sceneCtx.createLinearGradient(countZone.x, countZone.y, countZone.x + countZone.w, countZone.y + countZone.h);
       g.addColorStop(0, "rgba(111, 208, 145, 0.12)");
       g.addColorStop(1, "rgba(111, 208, 145, 0.03)");
       sceneCtx.fillStyle = g;
       sceneCtx.fillRect(countZone.x, countZone.y, countZone.w, countZone.h);
-
-      sceneCtx.strokeStyle = `rgba(144, 240, 176, ${0.5 + pulseStrength * 0.4})`;
-      sceneCtx.lineWidth = 2 + pulseStrength * 8;
-      sceneCtx.setLineDash([10, 8]);
-      sceneCtx.strokeRect(countZone.x, countZone.y, countZone.w, countZone.h);
-      sceneCtx.setLineDash([]);
-
-      sceneCtx.fillStyle = "rgba(236, 244, 235, 0.82)";
-      sceneCtx.font = "600 15px Apple SD Gothic Neo, Noto Sans KR, sans-serif";
-      sceneCtx.fillText("COUNTING ZONE", countZone.x + 18, countZone.y + 28);
-      sceneCtx.font = "400 12px Apple SD Gothic Neo, Noto Sans KR, sans-serif";
-      sceneCtx.fillStyle = "rgba(236, 244, 235, 0.56)";
-      sceneCtx.fillText("집은 화폐를 이 영역으로 통과시키세요", countZone.x + 18, countZone.y + 48);
       sceneCtx.restore();
     }
 
